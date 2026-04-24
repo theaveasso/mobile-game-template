@@ -4,11 +4,10 @@
 #include <stdio.h>
 #include <string.h>
 
-static int _tests_run = 0;
-static int _tests_failed = 0;
+extern int _tests_run;
+extern int _tests_failed;
 
 #define TEST_ASSERT(cond) do {                                        \
-    _tests_run++;                                                     \
     if (!(cond)) {                                                    \
         _tests_failed++;                                               \
         fprintf(stderr, "  FAIL: %s:%d: %s\n",                         \
@@ -17,7 +16,6 @@ static int _tests_failed = 0;
 } while (0)
 
 #define TEST_ASSERT_EQ(a, b) do {                                     \
-    _tests_run++;                                                     \
     long long _va = (long long)(a);                                   \
     long long _vb = (long long)(b);                                   \
     if (_va != _vb) {                                                 \
@@ -30,6 +28,7 @@ static int _tests_failed = 0;
 #define TEST_CASE(name) static void test_##name(void)
 
 #define TEST_RUN(name) do {                                           \
+    _tests_run++;                                                     \
     printf("  %s\n", #name);                                           \
     test_##name();                                                     \
 } while (0)
