@@ -32,7 +32,7 @@ typedef struct {
 
 #define BOARD_WIDTH  3
 #define BOARD_HEIGHT 3
-#define BOARD_CELLS  9
+#define BOARD_CELLS  (BOARD_WIDTH * BOARD_HEIGHT)
 
 typedef struct {
     Unit cells[BOARD_CELLS];

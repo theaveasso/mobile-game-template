@@ -19,10 +19,10 @@ void board_remove_unit(Board* board, int cell) {
     board->occupied[cell] = 0;
 }
 
-Unit* board_get_unit(Board* board, int cell) {
+Unit* board_get_unit(const Board* board, int cell) {
     if (cell < 0 || cell >= BOARD_CELLS) return NULL;
     if (!board->occupied[cell]) return NULL;
-    return &board->cells[cell];
+    return (Unit*)&board->cells[cell];
 }
 
 int board_count_living(const Board* board) {
