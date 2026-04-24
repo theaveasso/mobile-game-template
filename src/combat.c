@@ -1,7 +1,6 @@
 #include "combat.h"
 #include "board.h"
 #include "unit.h"
-#include <stdlib.h>
 
 // Manhattan distance between two cell indices on a BOARD_WIDTH-wide grid.
 static int cell_distance(int a, int b) {
@@ -46,10 +45,10 @@ static void step_side(Board* side, Board* opponent, int dt_ms) {
 
         Unit* target = &opponent->cells[target_cell];
         unit_take_damage(target, attacker->attack);
+        // Preserve overflow: negative remainder carries into next tick so
+        // large dt_ms can't grant free attacks. Fixed-timestep callers at 16ms
+        // never see overflow, but simulation/catch-up callers rely on this.
         attacker->cooldown_remaining_ms += attacker->attack_cooldown_ms;
-        if (attacker->cooldown_remaining_ms < 0) {
-            attacker->cooldown_remaining_ms = 0;
-        }
     }
 }
 
