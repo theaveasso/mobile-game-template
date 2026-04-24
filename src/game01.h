@@ -1,5 +1,9 @@
-#ifndef GAME_TYPES_H
-#define GAME_TYPES_H
+#ifndef GAME01_H
+#define GAME01_H
+
+#define GAME01_TITLE   "game01"
+#define WINDOW_WIDTH   450
+#define WINDOW_HEIGHT  900
 
 typedef enum {
     SHAPE_TRIANGLE,

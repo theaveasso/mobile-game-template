@@ -30,7 +30,7 @@ Each later phase becomes its own plan document when Phase N completes.
 
 **Source files (all in `src/`):**
 - `main.c` — raylib entry + main loop + scene dispatch (STRIPPED DOWN from current hello-world)
-- `types.h` — shared enums and structs (Shape, Color, Unit, Board, Team)
+- `game01.h` — shared enums and structs (Shape, Color, Unit, Board, Team)
 - `unit.c` / `unit.h` — unit constructors, damage, queries
 - `board.c` / `board.h` — 3×3 board data, place/remove/get cell, living count, is_defeated
 - `combat.c` / `combat.h` — deterministic combat stepper (pure logic, no raylib)
@@ -58,16 +58,16 @@ Goal: Prepare the build system for multi-file code without breaking current desk
 
 **Files:**
 - Modify: `CMakeLists.txt`
-- Create: `src/types.h`, `src/unit.c`, `src/unit.h`, `src/board.c`, `src/board.h`, `src/combat.c`, `src/combat.h`, `src/render.c`, `src/render.h`, `src/game.c`, `src/game.h` (all as empty stubs)
+- Create: `src/game01.h`, `src/unit.c`, `src/unit.h`, `src/board.c`, `src/board.h`, `src/combat.c`, `src/combat.h`, `src/render.c`, `src/render.h`, `src/game.c`, `src/game.h` (all as empty stubs)
 
 - [ ] **Step 1: Create empty header/source stubs**
 
 Create all the files below with minimal placeholder content so they compile:
 
-`src/types.h`:
+`src/game01.h`:
 ```c
-#ifndef GAME_TYPES_H
-#define GAME_TYPES_H
+#ifndef GAME01_H
+#define GAME01_H
 #endif
 ```
 
@@ -75,7 +75,7 @@ Create all the files below with minimal placeholder content so they compile:
 ```c
 #ifndef GAME_UNIT_H
 #define GAME_UNIT_H
-#include "types.h"
+#include "game01.h"
 #endif
 ```
 
@@ -165,11 +165,11 @@ Create `test/test.h`:
 #include <stdio.h>
 #include <string.h>
 
-static int _tests_run = 0;
-static int _tests_failed = 0;
+// Counters live in test_runner.c. extern here so every TU sees the same ones.
+extern int _tests_run;
+extern int _tests_failed;
 
 #define TEST_ASSERT(cond) do {                                        \
-    _tests_run++;                                                     \
     if (!(cond)) {                                                    \
         _tests_failed++;                                               \
         fprintf(stderr, "  FAIL: %s:%d: %s\n",                         \
@@ -178,7 +178,6 @@ static int _tests_failed = 0;
 } while (0)
 
 #define TEST_ASSERT_EQ(a, b) do {                                     \
-    _tests_run++;                                                     \
     long long _va = (long long)(a);                                   \
     long long _vb = (long long)(b);                                   \
     if (_va != _vb) {                                                 \
@@ -190,7 +189,9 @@ static int _tests_failed = 0;
 
 #define TEST_CASE(name) static void test_##name(void)
 
+// Increment counter once per test case (not per assertion).
 #define TEST_RUN(name) do {                                           \
+    _tests_run++;                                                     \
     printf("  %s\n", #name);                                           \
     test_##name();                                                     \
 } while (0)
@@ -307,7 +308,7 @@ git commit -m "test: add minimal C test framework and empty suite"
 Goal: Define the Unit struct and basic operations. Pure logic, fully tested.
 
 **Files:**
-- Modify: `src/types.h`, `src/unit.h`, `src/unit.c`, `test/test_unit.c`
+- Modify: `src/game01.h`, `src/unit.h`, `src/unit.c`, `test/test_unit.c`
 
 - [ ] **Step 1: Write failing tests for unit creation and damage**
 
@@ -363,13 +364,13 @@ cmake --build --preset debug --target test_runner
 ```
 Expected: compile error — `unit_create` / `unit_take_damage` / `unit_is_alive` not declared; types `Unit`, `SHAPE_TRIANGLE`, `COLOR_RED` not defined.
 
-- [ ] **Step 3: Define types in `src/types.h`**
+- [ ] **Step 3: Define types in `src/game01.h`**
 
-Replace `src/types.h` with:
+Replace `src/game01.h` with:
 
 ```c
-#ifndef GAME_TYPES_H
-#define GAME_TYPES_H
+#ifndef GAME01_H
+#define GAME01_H
 
 typedef enum {
     SHAPE_TRIANGLE,
@@ -411,7 +412,7 @@ Replace `src/unit.h` with:
 #ifndef GAME_UNIT_H
 #define GAME_UNIT_H
 
-#include "types.h"
+#include "game01.h"
 
 Unit unit_create(UnitShape shape, UnitColor color);
 void unit_take_damage(Unit* unit, int damage);
@@ -490,7 +491,7 @@ Combat tests:
 - [ ] **Step 7: Commit**
 
 ```bash
-git add src/types.h src/unit.h src/unit.c test/test_unit.c
+git add src/game01.h src/unit.h src/unit.c test/test_unit.c
 git commit -m "feat(unit): add Unit data model with per-shape base stats"
 ```
 
@@ -501,7 +502,7 @@ git commit -m "feat(unit): add Unit data model with per-shape base stats"
 Goal: 3×3 board with place/remove/get operations and win-condition checks.
 
 **Files:**
-- Modify: `src/types.h`, `src/board.h`, `src/board.c`, `test/test_board.c`
+- Modify: `src/game01.h`, `src/board.h`, `src/board.c`, `test/test_board.c`
 
 - [ ] **Step 1: Write failing tests**
 
@@ -577,9 +578,9 @@ cmake --build --preset debug --target test_runner
 ```
 Expected: compile errors — `Board`, `BOARD_CELLS`, `board_create`, etc. not defined.
 
-- [ ] **Step 3: Add Board struct to `src/types.h`**
+- [ ] **Step 3: Add Board struct to `src/game01.h`**
 
-Append to `src/types.h` BEFORE `#endif`:
+Append to `src/game01.h` BEFORE `#endif`:
 
 ```c
 #define BOARD_WIDTH  3
@@ -602,7 +603,7 @@ Replace `src/board.h` with:
 #ifndef GAME_BOARD_H
 #define GAME_BOARD_H
 
-#include "types.h"
+#include "game01.h"
 
 Board board_create(void);
 void  board_place_unit(Board* board, int cell, Unit unit);
@@ -671,7 +672,7 @@ Expected: all 9 tests pass (4 unit + 5 board), 0 failed.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add src/types.h src/board.h src/board.c test/test_board.c
+git add src/game01.h src/board.h src/board.c test/test_board.c
 git commit -m "feat(board): add 3x3 board with place/remove/get operations"
 ```
 
@@ -812,7 +813,7 @@ Replace `src/combat.h` with:
 #ifndef GAME_COMBAT_H
 #define GAME_COMBAT_H
 
-#include "types.h"
+#include "game01.h"
 
 typedef enum {
     COMBAT_ONGOING,
@@ -938,7 +939,7 @@ Replace `src/game.h` with:
 #ifndef GAME_GAME_H
 #define GAME_GAME_H
 
-#include "types.h"
+#include "game01.h"
 
 typedef enum {
     SCENE_SETUP,       // Player looking at the pre-placed teams, about to press FIGHT.
@@ -1064,7 +1065,7 @@ Replace `src/render.h` with:
 #ifndef GAME_RENDER_H
 #define GAME_RENDER_H
 
-#include "types.h"
+#include "game01.h"
 #include "game.h"
 
 // All rendering happens between raylib's BeginDrawing / EndDrawing.
@@ -1092,11 +1093,11 @@ Replace `src/render.c` with:
 #include "board.h"
 #include "raylib.h"
 
-#define GRAYFI5H_BG  ((Color){ 26, 26, 26, 255 })
+#define GAME01_BG  ((Color){ 26, 26, 26, 255 })
 #define GRID_LINE    ((Color){ 60, 60, 60, 255 })
 
 void render_background(void) {
-    ClearBackground(GRAYFI5H_BG);
+    ClearBackground(GAME01_BG);
 }
 
 void render_board(const Board* board, int top_y, int cell_size) {
@@ -1135,7 +1136,7 @@ Replace `src/main.c` with:
 #include "render.h"
 
 int main(void) {
-    InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "grayfi5h combat demo");
+    InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, GAME01_TITLE);
     SetTargetFPS(60);
 
     GameState g = game_create();
@@ -1170,7 +1171,7 @@ Expected: A dark gray 450×900 portrait window opens. Two 3×3 grids are visible
 
 ```bash
 git add src/render.h src/render.c src/main.c
-git commit -m "feat(render): draw empty 3x3 portrait boards in grayfi5h background"
+git commit -m "feat(render): draw empty 3x3 portrait boards on dark background"
 ```
 
 ---
@@ -1382,7 +1383,7 @@ Now rewrite `src/main.c`:
 #include "render.h"
 
 int main(void) {
-    InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "grayfi5h combat demo");
+    InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, GAME01_TITLE);
     SetTargetFPS(60);
 
     GameState g = game_create();
@@ -1544,7 +1545,7 @@ Expected: APK builds successfully using the updated `PROJECT_SOURCE_FILES` list.
 
 Most likely cause: `PROJECT_SOURCE_FILES` in `src/Makefile.Android` line 63 is not pointing at the right files, or a header path wasn't added to the Android build. If so, verify it includes: `main.c unit.c board.c combat.c render.c game.c`.
 
-If the build asks for a path like `src/types.h` — it already works because all new headers live in the same `src/` directory as `main.c`.
+If the build asks for a path like `src/game01.h` — it already works because all new headers live in the same `src/` directory as `main.c`.
 
 If test_runner accidentally got pulled into the Android build, verify only desktop CMake references `test/` — Makefile.Android should not.
 
@@ -1633,7 +1634,7 @@ Spec coverage check against `docs/superpowers/specs/2026-04-24-grayfi5h-autobatt
 Placeholder scan: no TBDs, TODOs, or vague steps in the 12 tasks. Every code block is complete. Every command has expected output.
 
 Type consistency:
-- `Unit` struct defined in Task 3 (`src/types.h`) with fields `shape, color, stars, hp, max_hp, attack, attack_cooldown_ms, cooldown_remaining_ms`
+- `Unit` struct defined in Task 3 (`src/game01.h`) with fields `shape, color, stars, hp, max_hp, attack, attack_cooldown_ms, cooldown_remaining_ms`
 - Used consistently in Tasks 4-10
 - `Board` struct defined in Task 4 with `cells[BOARD_CELLS]` and `occupied[BOARD_CELLS]`
 - Used consistently in Tasks 5-10

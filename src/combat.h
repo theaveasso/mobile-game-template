@@ -1,7 +1,7 @@
 #ifndef GAME_COMBAT_H
 #define GAME_COMBAT_H
 
-#include "types.h"
+#include "game01.h"
 
 typedef enum {
     COMBAT_ONGOING,

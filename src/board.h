@@ -1,7 +1,7 @@
 #ifndef GAME_BOARD_H
 #define GAME_BOARD_H
 
-#include "types.h"
+#include "game01.h"
 
 Board board_create(void);
 void  board_place_unit(Board* board, int cell, Unit unit);

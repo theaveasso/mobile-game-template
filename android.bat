@@ -40,7 +40,12 @@ echo OK: classes.dex and libmain.so present
 echo.
 echo [4/5] Installing to device
 %ADB% install -r %APK%
-if errorlevel 1 goto fail
+if errorlevel 1 (
+    echo Install failed. Uninstalling previous package and retrying...
+    %ADB% uninstall %PKG%
+    %ADB% install %APK%
+    if errorlevel 1 goto fail
+)
 
 echo.
 echo [5/5] Launching app and streaming logcat (Ctrl+C to stop)

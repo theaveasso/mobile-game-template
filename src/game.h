@@ -1,7 +1,7 @@
 #ifndef GAME_GAME_H
 #define GAME_GAME_H
 
-#include "types.h"
+#include "game01.h"
 
 typedef enum {
     SCENE_SETUP,       // Player looking at the pre-placed teams, about to press FIGHT.

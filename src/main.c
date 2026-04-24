@@ -1,15 +1,22 @@
 #include "raylib.h"
+#include "game.h"
+#include "render.h"
 
-int main(void)
-{
-    InitWindow(800, 600, "Hello World");
-    while (!WindowShouldClose())
-    {
+int main(void) {
+    InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, GAME01_TITLE);
+    SetTargetFPS(60);
+
+    GameState g = game_create();
+
+    while (!WindowShouldClose()) {
+        int dt_ms = (int)(GetFrameTime() * 1000.0f);
+        game_step(&g, dt_ms);
+
         BeginDrawing();
-        ClearBackground(RAYWHITE);
-        DrawText("Hello World", 10, 10, 20, BLACK);
+        render_game(&g);
         EndDrawing();
     }
+
     CloseWindow();
     return 0;
 }
