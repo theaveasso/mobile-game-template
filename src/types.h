@@ -22,12 +22,21 @@ typedef enum {
 typedef struct {
     UnitShape shape;
     UnitColor color;
-    int stars;      // 1, 2, or 3
-    int hp;         // current HP
+    int stars;                  // 1, 2, or 3
+    int hp;                     // current HP
     int max_hp;
-    int attack;     // damage per attack
-    int attack_cooldown_ms;  // time between attacks
-    int cooldown_remaining_ms; // countdown during combat
+    int attack;                 // damage per attack
+    int attack_cooldown_ms;     // time between attacks
+    int cooldown_remaining_ms;  // countdown during combat
 } Unit;
+
+#define BOARD_WIDTH  3
+#define BOARD_HEIGHT 3
+#define BOARD_CELLS  9
+
+typedef struct {
+    Unit cells[BOARD_CELLS];
+    int  occupied[BOARD_CELLS];  // 1 if cell has a unit, 0 if empty
+} Board;
 
 #endif
