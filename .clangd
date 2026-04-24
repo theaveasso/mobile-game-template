@@ -1,0 +1,15 @@
+CompileFlags:
+  CompilationDatabase: build/debug
+  Remove:
+    - "-external:W*"
+    - "-external:I*"
+    - "/external:W*"
+    - "/external:I*"
+  Add:
+    - "-ID:/game01/build/debug/vcpkg_installed/x64-windows/include"
+    - "-Wno-unknown-attributes"
+    - "-Wno-microsoft-include"
+    - "-Wno-pragma-pack"
+
+Diagnostics:
+  UnusedIncludes: None

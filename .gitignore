@@ -1,0 +1,30 @@
+# AI
+.claude
+
+# Desktop build
+build/
+
+# Android build artifacts
+src/android.game01/
+src/*.apk
+src/*.apk.idsig
+src/*.keystore
+
+# IDE
+.vscode/
+.vs/
+.idea/
+
+# Compiled
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.a
+*.lib
+*.pdb
+
+# vcpkg (local install, not tracked)
+vcpkg/
+vcpkg_installed/
