@@ -10,6 +10,8 @@ set(GAME_SOURCES
     src/combat.c
     src/shop.c
     src/bench.c
+    src/unit_def.c
+    src/trait.c
     src/layout.c
     src/render.c
     src/game.c
@@ -31,6 +33,7 @@ set(TEST_SOURCES
     test/test_combat.c
     test/test_shop.c
     test/test_bench.c
+    test/test_trait.c
     test/test_game.c
     test/test_layout.c
     src/unit.c
@@ -38,6 +41,8 @@ set(TEST_SOURCES
     src/combat.c
     src/shop.c
     src/bench.c
+    src/unit_def.c
+    src/trait.c
     src/layout.c
     src/game.c
 )

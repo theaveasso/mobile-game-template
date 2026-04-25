@@ -9,6 +9,7 @@ void run_combat_tests(void);
 void run_shop_tests(void);
 void run_bench_tests(void);
 void run_game_tests(void);
+void run_trait_tests(void);
 void run_layout_tests(void);
 
 int main(void) {
@@ -17,6 +18,7 @@ int main(void) {
     run_combat_tests();
     run_shop_tests();
     run_bench_tests();
+    run_trait_tests();
     run_game_tests();
     run_layout_tests();
     TEST_SUMMARY_AND_EXIT();

@@ -41,7 +41,18 @@ typedef enum {
     TIER_COUNT
 } UnitTier;
 
+typedef enum {
+    TRAIT_NONE = -1,
+    TRAIT_BRAWLER,
+    TRAIT_WARRIOR,
+    TRAIT_MYSTIC,
+    TRAIT_COUNT
+} TraitId;
+
+#define UNIT_TRAIT_SLOTS 2
+
 typedef struct {
+    int def_id;
     UnitShape shape;
     UnitColor color;
     UnitTier tier;

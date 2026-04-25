@@ -1,5 +1,6 @@
 #include "test.h"
 #include "../src/unit.h"
+#include "../src/unit_def.h"
 
 TEST_CASE(unit_create_tiered_sets_fields) {
     Unit u = unit_create_tiered(SHAPE_TRIANGLE, COLOR_RED, TIER_I);
@@ -9,6 +10,19 @@ TEST_CASE(unit_create_tiered_sets_fields) {
     TEST_ASSERT(u.hp > 0);
     TEST_ASSERT(u.max_hp == u.hp);
     TEST_ASSERT(u.attack > 0);
+}
+
+TEST_CASE(unit_definition_drives_created_unit_stats) {
+    int def_id = unit_def_id_for_shape_color(SHAPE_HEXAGON, COLOR_PURPLE);
+    const UnitDefinition* def = unit_def_get(def_id);
+
+    Unit u = unit_create_tiered(SHAPE_HEXAGON, COLOR_PURPLE, TIER_III);
+
+    TEST_ASSERT_EQ(u.def_id, def_id);
+    TEST_ASSERT_EQ(u.max_hp, def->base_hp);
+    TEST_ASSERT_EQ(u.attack, def->base_attack);
+    TEST_ASSERT_EQ(u.attack_cooldown_ms, def->attack_cooldown_ms);
+    TEST_ASSERT_EQ(u.cost, def->costs[TIER_III]);
 }
 
 TEST_CASE(unit_take_damage_reduces_hp) {
@@ -53,6 +67,15 @@ TEST_CASE(unit_create_tiered_invalid_tier_falls_back_to_tier_one) {
     TEST_ASSERT_EQ(u.cost, 1);
 }
 
+TEST_CASE(unit_create_tiered_invalid_shape_and_color_fall_back_to_defaults) {
+    Unit u = unit_create_tiered((UnitShape)99, (UnitColor)99, TIER_I);
+
+    TEST_ASSERT_EQ(u.shape, SHAPE_TRIANGLE);
+    TEST_ASSERT_EQ(u.color, COLOR_RED);
+    TEST_ASSERT_EQ(u.def_id, 0);
+    TEST_ASSERT(u.max_hp > 0);
+}
+
 TEST_CASE(unit_promote_star_increases_stats_and_heals) {
     Unit u = unit_create_tiered(SHAPE_TRIANGLE, COLOR_RED, TIER_I);
     int base_hp = u.max_hp;
@@ -82,12 +105,14 @@ TEST_CASE(unit_promote_star_stops_at_three_stars) {
 void run_unit_tests(void) {
     printf("Unit tests:\n");
     TEST_RUN(unit_create_tiered_sets_fields);
+    TEST_RUN(unit_definition_drives_created_unit_stats);
     TEST_RUN(unit_take_damage_reduces_hp);
     TEST_RUN(unit_is_alive_false_when_hp_zero);
     TEST_RUN(unit_square_has_more_hp_than_triangle);
     TEST_RUN(unit_create_tiered_sets_tier_one_cost);
     TEST_RUN(unit_create_tiered_sets_cost_by_tier);
     TEST_RUN(unit_create_tiered_invalid_tier_falls_back_to_tier_one);
+    TEST_RUN(unit_create_tiered_invalid_shape_and_color_fall_back_to_defaults);
     TEST_RUN(unit_promote_star_increases_stats_and_heals);
     TEST_RUN(unit_promote_star_stops_at_three_stars);
 }

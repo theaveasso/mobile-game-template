@@ -1,38 +1,38 @@
 #include "unit.h"
-
-// Base stats per shape. Color has no stat effect in Phase 1 (synergies come in Phase 4).
-typedef struct {
-    int hp;
-    int attack;
-    int attack_cooldown_ms;
-} ShapeStats;
-
-static const ShapeStats SHAPE_STATS[SHAPE_COUNT] = {
-    [SHAPE_TRIANGLE] = { .hp = 40,  .attack = 12, .attack_cooldown_ms = 800  },
-    [SHAPE_SQUARE]   = { .hp = 80,  .attack = 6,  .attack_cooldown_ms = 1200 },
-    [SHAPE_CIRCLE]   = { .hp = 35,  .attack = 4,  .attack_cooldown_ms = 700  },
-    [SHAPE_HEXAGON]  = { .hp = 30,  .attack = 15, .attack_cooldown_ms = 1500 },
-    [SHAPE_DIAMOND]  = { .hp = 25,  .attack = 18, .attack_cooldown_ms = 900  },
-};
+#include "unit_def.h"
 
 static UnitTier valid_tier_or_default(UnitTier tier) {
     if (tier < TIER_I || tier >= TIER_COUNT) return TIER_I;
     return tier;
 }
 
+static UnitShape valid_shape_or_default(UnitShape shape) {
+    if (shape < SHAPE_TRIANGLE || shape >= SHAPE_COUNT) return SHAPE_TRIANGLE;
+    return shape;
+}
+
+static UnitColor valid_color_or_default(UnitColor color) {
+    if (color < COLOR_RED || color >= COLOR_COUNT) return COLOR_RED;
+    return color;
+}
+
 Unit unit_create_tiered(UnitShape shape, UnitColor color, UnitTier tier) {
+    shape = valid_shape_or_default(shape);
+    color = valid_color_or_default(color);
     tier = valid_tier_or_default(tier);
-    ShapeStats s = SHAPE_STATS[shape];
+    int def_id = unit_def_id_for_shape_color(shape, color);
+    const UnitDefinition* def = unit_def_get(def_id);
     Unit u = {
-        .shape = shape,
-        .color = color,
+        .def_id = def_id,
+        .shape = def->shape,
+        .color = def->color,
         .tier = tier,
-        .cost = (int)tier + 1,
+        .cost = def->costs[tier],
         .stars = 1,
-        .hp = s.hp,
-        .max_hp = s.hp,
-        .attack = s.attack,
-        .attack_cooldown_ms = s.attack_cooldown_ms,
+        .hp = def->base_hp,
+        .max_hp = def->base_hp,
+        .attack = def->base_attack,
+        .attack_cooldown_ms = def->attack_cooldown_ms,
         .cooldown_remaining_ms = 0,
     };
     return u;
@@ -41,13 +41,24 @@ Unit unit_create_tiered(UnitShape shape, UnitColor color, UnitTier tier) {
 int unit_promote_star(Unit* unit) {
     if (unit->stars >= 3) return 0;
 
-    ShapeStats s = SHAPE_STATS[unit->shape];
+    unit->shape = valid_shape_or_default(unit->shape);
+    unit->color = valid_color_or_default(unit->color);
+    unit->def_id = unit_def_id_for_shape_color(unit->shape, unit->color);
     unit->stars++;
-    unit->max_hp = s.hp * unit->stars;
-    unit->hp = unit->max_hp;
-    unit->attack = s.attack * unit->stars;
-    unit->cooldown_remaining_ms = 0;
+    unit_reset_combat_stats(unit);
     return 1;
+}
+
+void unit_reset_combat_stats(Unit* unit) {
+    unit->shape = valid_shape_or_default(unit->shape);
+    unit->color = valid_color_or_default(unit->color);
+    unit->def_id = unit_def_id_for_shape_color(unit->shape, unit->color);
+    const UnitDefinition* def = unit_def_get(unit->def_id);
+    unit->max_hp = def->base_hp * unit->stars;
+    unit->hp = unit->max_hp;
+    unit->attack = def->base_attack * unit->stars;
+    unit->attack_cooldown_ms = def->attack_cooldown_ms;
+    unit->cooldown_remaining_ms = 0;
 }
 
 void unit_take_damage(Unit* unit, int damage) {

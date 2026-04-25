@@ -3,6 +3,8 @@
 #include "combat.h"
 #include "layout.h"
 #include "raylib.h"
+#include "trait.h"
+#include "unit_def.h"
 #include <stddef.h>
 #include <stdio.h>
 
@@ -23,7 +25,9 @@
 #define ACTION_BUTTON_Y 690
 #define BENCH_LABEL_Y 750
 #define BENCH_SLOTS_Y 775
+#define SYNERGY_TEXT_Y 585
 #define LEVEL_TEXT_Y 620
+#define BUTTON_FONT_SIZE 18
 #define POPUP_PANEL_X 16
 #define POPUP_PANEL_W 418
 #define UNIT_INFO_PANEL_Y 72
@@ -202,12 +206,12 @@ void render_board(const Board* board, int top_y, int cell_size) {
     }
 }
 
-void render_game(const GameState* g) {
-    render_background();
-
+static void render_world_layer(const GameState* g) {
     render_board(&g->enemy,    ENEMY_BOARD_Y,    BOARD_CELL_SIZE);
     render_board(&g->friendly, FRIENDLY_BOARD_Y, BOARD_CELL_SIZE);
+}
 
+static void render_status_layer(const GameState* g) {
     const char* header = NULL;
     switch (g->scene) {
         case SCENE_SETUP:
@@ -232,60 +236,183 @@ void render_game(const GameState* g) {
     if (game_is_boss_round(g)) {
         DrawText("BOSS", 340, 48, 18, (Color){ 255, 70, 90, 255 });
     }
+}
 
-    if (g->scene == SCENE_SETUP) {
-        char level_text[64];
-        snprintf(level_text, sizeof(level_text), "Lv %d   XP %d   Team %d/%d",
-                 g->player_level, g->xp, board_count_living(&g->friendly), game_team_size_cap(g));
-        DrawText(level_text, 24, LEVEL_TEXT_Y, 18, SECTION_LABEL_COLOR);
+static void render_shop_layer(const GameState* g) {
+    if (!g->shop_open) return;
 
-        char gold_text[32];
-        snprintf(gold_text, sizeof(gold_text), "Gold: %d", g->gold);
-        DrawText(gold_text, 24, GOLD_Y, 22, RAYWHITE);
-
-        if (g->shop_open) {
-            Rectangle panel = render_shop_panel_rect();
-            draw_popup_panel(panel, (Color){ 110, 110, 110, 255 });
-            DrawText("Shop", SHOP_PANEL_X + 14, SHOP_PANEL_Y + 12, 22, RAYWHITE);
-            DrawText("Tap unit to buy", SHOP_PANEL_X + 14, SHOP_PANEL_Y + 40, 16, SECTION_LABEL_COLOR);
-            for (int i = 0; i < SHOP_SLOT_COUNT; i++) {
-                const Unit* unit = g->shop.occupied[i] ? &g->shop.slots[i] : NULL;
-                draw_unit_card(render_shop_slot_rect(i), unit, 0);
-            }
-        }
-
-        DrawText("Bench", 24, BENCH_LABEL_Y, 18, SECTION_LABEL_COLOR);
-        for (int i = 0; i < BENCH_SLOT_COUNT; i++) {
-            const Unit* unit = g->bench.occupied[i] ? &g->bench.slots[i] : NULL;
-            draw_unit_card(render_bench_slot_rect(i), unit, i == g->selected_bench_slot);
-        }
-    }
-
-    if (g->unit_info_open) {
-        const Unit* unit = &g->unit_info;
-        Rectangle panel = render_unit_info_panel_rect();
-        draw_popup_panel(panel, color_for_unit(unit->color));
-
-        char title[64];
-        snprintf(title, sizeof(title), "%s %s %s", color_label(unit->color), shape_label(unit->shape), star_label_for_unit(unit));
-        DrawText(title, POPUP_PANEL_X + 14, UNIT_INFO_PANEL_Y + 12, 22, RAYWHITE);
-
-        char stats[96];
-        snprintf(stats, sizeof(stats), "HP %d/%d   ATK %d   CD %dms",
-                 unit->hp, unit->max_hp, unit->attack, unit->attack_cooldown_ms);
-        DrawText(stats, POPUP_PANEL_X + 14, UNIT_INFO_PANEL_Y + 48, 18, SECTION_LABEL_COLOR);
-
-        char economy[64];
-        snprintf(economy, sizeof(economy), "Tier %s   Cost %dg", tier_label(unit->tier), unit->cost);
-        DrawText(economy, POPUP_PANEL_X + 14, UNIT_INFO_PANEL_Y + 78, 18, SECTION_LABEL_COLOR);
+    Rectangle panel = render_shop_panel_rect();
+    draw_popup_panel(panel, (Color){ 110, 110, 110, 255 });
+    DrawText("Shop", SHOP_PANEL_X + 14, SHOP_PANEL_Y + 12, 22, RAYWHITE);
+    DrawText("Tap unit to buy", SHOP_PANEL_X + 14, SHOP_PANEL_Y + 40, 16, SECTION_LABEL_COLOR);
+    for (int i = 0; i < SHOP_SLOT_COUNT; i++) {
+        const Unit* unit = g->shop.occupied[i] ? &g->shop.slots[i] : NULL;
+        draw_unit_card(render_shop_slot_rect(i), unit, 0);
     }
 }
 
-const Rectangle SHOP_BUTTON_RECT = { 24, ACTION_BUTTON_Y, 118, 54 };
+static void render_bench_layer(const GameState* g) {
+    DrawText("Bench", 24, BENCH_LABEL_Y, 18, SECTION_LABEL_COLOR);
+    for (int i = 0; i < BENCH_SLOT_COUNT; i++) {
+        const Unit* unit = g->bench.occupied[i] ? &g->bench.slots[i] : NULL;
+        draw_unit_card(render_bench_slot_rect(i), unit, i == g->selected_bench_slot);
+    }
+}
+
+static void render_setup_layer(const GameState* g) {
+    if (g->scene != SCENE_SETUP) return;
+
+    ActiveSynergyList synergies = trait_build_active_synergies(&g->friendly);
+    DrawText("Synergies", 24, SYNERGY_TEXT_Y, 16, SECTION_LABEL_COLOR);
+    if (synergies.count == 0) {
+        DrawText("None active", 112, SYNERGY_TEXT_Y, 16, SECTION_LABEL_COLOR);
+    }
+    for (int i = 0; i < synergies.count; i++) {
+        char label[48];
+        snprintf(label, sizeof(label), "%s %d/%d",
+                 trait_name(synergies.items[i].trait),
+                 synergies.items[i].unit_count,
+                 synergies.items[i].threshold);
+        DrawText(label, 112 + i * 112, SYNERGY_TEXT_Y, 16, (Color){ 80, 230, 140, 255 });
+    }
+
+    char level_text[64];
+    snprintf(level_text, sizeof(level_text), "Lv %d   XP %d   Team %d/%d",
+             g->player_level, g->xp, board_count_living(&g->friendly), game_team_size_cap(g));
+    DrawText(level_text, 24, LEVEL_TEXT_Y, 18, SECTION_LABEL_COLOR);
+
+    char gold_text[32];
+    snprintf(gold_text, sizeof(gold_text), "Gold: %d", g->gold);
+    DrawText(gold_text, 24, GOLD_Y, 22, RAYWHITE);
+
+    render_shop_layer(g);
+    render_bench_layer(g);
+}
+
+static void render_unit_info_layer(const GameState* g) {
+    if (!g->unit_info_open) return;
+
+    const Unit* unit = &g->unit_info;
+    Rectangle panel = render_unit_info_panel_rect();
+    draw_popup_panel(panel, color_for_unit(unit->color));
+
+    char title[64];
+    snprintf(title, sizeof(title), "%s %s %s", color_label(unit->color), shape_label(unit->shape), star_label_for_unit(unit));
+    DrawText(title, POPUP_PANEL_X + 14, UNIT_INFO_PANEL_Y + 12, 22, RAYWHITE);
+
+    char stats[96];
+    snprintf(stats, sizeof(stats), "HP %d/%d   ATK %d   CD %dms",
+             unit->hp, unit->max_hp, unit->attack, unit->attack_cooldown_ms);
+    DrawText(stats, POPUP_PANEL_X + 14, UNIT_INFO_PANEL_Y + 48, 18, SECTION_LABEL_COLOR);
+
+    char economy[64];
+    snprintf(economy, sizeof(economy), "Tier %s   Cost %dg", tier_label(unit->tier), unit->cost);
+    DrawText(economy, POPUP_PANEL_X + 14, UNIT_INFO_PANEL_Y + 78, 18, SECTION_LABEL_COLOR);
+}
+
+void render_main_menu(const GameState* g) {
+    render_background();
+
+    DrawText("GAME01", 24, 48, 42, RAYWHITE);
+    DrawText("Choose a run", 28, 96, 20, SECTION_LABEL_COLOR);
+
+    Rectangle card = { 54, 168, WINDOW_WIDTH - 108, 460 };
+    RunId run = g->selected_run;
+    const RunDefinition* def = &RUN_DEFINITIONS[run];
+    int unlocked = game_run_is_unlocked(g, run);
+
+    Color card_fill = unlocked ? (Color){ 34, 34, 38, 255 } : (Color){ 24, 24, 26, 255 };
+    Color accent = unlocked ? (Color){ 80, 170, 255, 255 } : (Color){ 90, 90, 90, 255 };
+    DrawRectangleRec(card, card_fill);
+    DrawRectangleLinesEx(card, 2.0f, accent);
+
+    DrawText("<", 42, 358, 50, SECTION_LABEL_COLOR);
+    DrawText(">", WINDOW_WIDTH - 70, 358, 50, SECTION_LABEL_COLOR);
+
+    int title_w = MeasureText(def->name, 30);
+    DrawText(def->name, (WINDOW_WIDTH - title_w) / 2, 220, 30, RAYWHITE);
+
+    int theme_w = MeasureText(def->theme, 20);
+    DrawText(def->theme, (WINDOW_WIDTH - theme_w) / 2, 268, 20, SECTION_LABEL_COLOR);
+
+    char difficulty[64];
+    snprintf(difficulty, sizeof(difficulty), "Difficulty: %s", def->difficulty);
+    int difficulty_w = MeasureText(difficulty, 18);
+    DrawText(difficulty, (WINDOW_WIDTH - difficulty_w) / 2, 316, 18, RAYWHITE);
+
+    char best[64];
+    snprintf(best, sizeof(best), "Best Round %d/%d", g->run_progress[run].best_round, MAX_RUN_ROUNDS);
+    int best_w = MeasureText(best, 18);
+    DrawText(best, (WINDOW_WIDTH - best_w) / 2, 350, 18, SECTION_LABEL_COLOR);
+
+    if (unlocked) {
+        DrawText("READY", 184, 470, 24, (Color){ 80, 230, 140, 255 });
+    } else {
+        const char* locked = "LOCKED";
+        int locked_w = MeasureText(locked, 30);
+        DrawText(locked, (WINDOW_WIDTH - locked_w) / 2, 458, 30, (Color){ 255, 70, 90, 255 });
+
+        RunId required = (RunId)def->unlock_after;
+        if (required >= 0 && required < RUN_COUNT) {
+            char unlock_text[96];
+            snprintf(unlock_text, sizeof(unlock_text), "Clear %s to unlock", RUN_DEFINITIONS[required].name);
+            int unlock_w = MeasureText(unlock_text, 16);
+            DrawText(unlock_text, (WINDOW_WIDTH - unlock_w) / 2, 500, 16, SECTION_LABEL_COLOR);
+        }
+    }
+
+    DrawText("Swipe or tap arrows to browse runs", 78, 650, 16, SECTION_LABEL_COLOR);
+}
+
+void render_progress_scene(const GameState* g) {
+    render_background();
+    DrawText("Progress", 24, 52, 34, RAYWHITE);
+    DrawText("Run unlocks and best rounds", 26, 96, 18, SECTION_LABEL_COLOR);
+
+    for (int i = 0; i < RUN_COUNT; i++) {
+        Rectangle row = { 24, (float)(160 + i * 110), WINDOW_WIDTH - 48, 82 };
+        Color border = g->run_progress[i].unlocked ? (Color){ 80, 170, 255, 255 } : GRID_LINE;
+        DrawRectangleRec(row, (Color){ 34, 34, 34, 255 });
+        DrawRectangleLinesEx(row, 1.0f, border);
+
+        DrawText(RUN_DEFINITIONS[i].name, (int)row.x + 16, (int)row.y + 12, 22, RAYWHITE);
+
+        char status[96];
+        snprintf(status, sizeof(status), "%s   Best %d/%d",
+                 g->run_progress[i].unlocked ? "Unlocked" : "Locked",
+                 g->run_progress[i].best_round, MAX_RUN_ROUNDS);
+        DrawText(status, (int)row.x + 16, (int)row.y + 48, 16, SECTION_LABEL_COLOR);
+    }
+}
+
+void render_settings_scene(const GameState* g) {
+    (void)g;
+    render_background();
+    DrawText("Settings", 24, 52, 34, RAYWHITE);
+    DrawText("Audio, controls, and display options will live here.", 26, 110, 18, SECTION_LABEL_COLOR);
+    DrawText("For now this page proves scene swapping is isolated.", 26, 140, 18, SECTION_LABEL_COLOR);
+}
+
+void render_game(const GameState* g) {
+    render_background();
+    render_world_layer(g);
+    render_status_layer(g);
+    render_setup_layer(g);
+    render_unit_info_layer(g);
+}
+
+const Rectangle LEVEL_BUTTON_RECT = { 24, ACTION_BUTTON_Y, 118, 54 };
 const Rectangle REROLL_BUTTON_RECT = { 150, ACTION_BUTTON_Y, 90, 54 };
-const Rectangle LEVEL_BUTTON_RECT = { 250, ACTION_BUTTON_Y, 90, 54 };
-const Rectangle FIGHT_BUTTON_RECT = { 350, ACTION_BUTTON_Y, 76, 54 };
+const Rectangle FIGHT_BUTTON_RECT = { 250, ACTION_BUTTON_Y, 76, 54 };
+const Rectangle SHOP_BUTTON_RECT = { 334, ACTION_BUTTON_Y, 92, 54 };
 const Rectangle SELL_BUTTON_RECT = { 330, GOLD_Y - 5, 96, 40 };
+const Rectangle MENU_FIGHT_BUTTON_RECT = { 24, 790, 184, 64 };
+const Rectangle MENU_PROGRESS_BUTTON_RECT = { 220, 790, 96, 64 };
+const Rectangle MENU_SETTINGS_BUTTON_RECT = { 328, 790, 98, 64 };
+const Rectangle MENU_PREV_RUN_RECT = { 24, 310, 56, 190 };
+const Rectangle MENU_NEXT_RUN_RECT = { 370, 310, 56, 190 };
+const Rectangle MENU_BACK_BUTTON_RECT = { 24, WINDOW_HEIGHT - 92, 180, 56 };
+const Rectangle RESULT_MENU_BUTTON_RECT = { 75, WINDOW_HEIGHT - 180, 300, 60 };
 const Rectangle RESET_BUTTON_RECT = { 75, WINDOW_HEIGHT - 100, 300, 70 };
 
 Rectangle render_shop_slot_rect(int slot) {
@@ -341,11 +468,11 @@ int render_button(Rectangle bounds, const char* label) {
     DrawRectangleRec(bounds, fill);
     DrawRectangleLinesEx(bounds, 1.0f, stroke);
 
-    int text_w = MeasureText(label, 30);
+    int text_w = MeasureText(label, BUTTON_FONT_SIZE);
     DrawText(label,
              (int)(bounds.x + (bounds.width - text_w) / 2.0f),
-             (int)(bounds.y + (bounds.height - 30) / 2.0f),
-             30,
+             (int)(bounds.y + (bounds.height - BUTTON_FONT_SIZE) / 2.0f),
+             BUTTON_FONT_SIZE,
              RAYWHITE);
 
     return hover && IsMouseButtonPressed(MOUSE_LEFT_BUTTON);

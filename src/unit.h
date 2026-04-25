@@ -5,6 +5,7 @@
 
 Unit unit_create_tiered(UnitShape shape, UnitColor color, UnitTier tier);
 int  unit_promote_star(Unit* unit);
+void unit_reset_combat_stats(Unit* unit);
 void unit_take_damage(Unit* unit, int damage);
 int  unit_is_alive(const Unit* unit);
 

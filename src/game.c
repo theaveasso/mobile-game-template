@@ -4,6 +4,7 @@
 #include "combat.h"
 #include "bench.h"
 #include "shop.h"
+#include "trait.h"
 #include <stdint.h>
 #include <time.h>
 
@@ -11,6 +12,12 @@ typedef struct {
     Unit* unit;
     int* occupied;
 } OwnedUnitRef;
+
+const RunDefinition RUN_DEFINITIONS[RUN_COUNT] = {
+    { "Classic Run", "Foundry Trial", "Normal", -1 },
+    { "Elite Run",   "Neon Gauntlet", "Hard",   RUN_CLASSIC },
+    { "Boss Run",    "Abyss Crown",   "Expert", RUN_ELITE },
+};
 
 static uint32_t starter_rng_state = 0u;
 
@@ -65,17 +72,62 @@ static void reset_setup_state(GameState* g) {
     g->scene = SCENE_SETUP;
 }
 
-static void prepare_next_round_setup(GameState* g) {
+static void reset_board_units_to_base(Board* board) {
     for (int i = 0; i < BOARD_CELLS; i++) {
-        if (!g->friendly.occupied[i]) continue;
-        g->friendly.cells[i].hp = g->friendly.cells[i].max_hp;
-        g->friendly.cells[i].cooldown_remaining_ms = 0;
+        if (!board->occupied[i]) continue;
+        unit_reset_combat_stats(&board->cells[i]);
     }
+}
+
+static void reset_bench_units_to_base(GameState* g) {
     for (int i = 0; i < BENCH_SLOT_COUNT; i++) {
         if (!g->bench.occupied[i]) continue;
-        g->bench.slots[i].hp = g->bench.slots[i].max_hp;
-        g->bench.slots[i].cooldown_remaining_ms = 0;
+        unit_reset_combat_stats(&g->bench.slots[i]);
     }
+}
+
+static void init_run_progress(GameState* g) {
+    for (int i = 0; i < RUN_COUNT; i++) {
+        g->run_progress[i] = (RunProgress){ 0 };
+    }
+    g->run_progress[RUN_CLASSIC].unlocked = 1;
+}
+
+static void update_selected_run_progress(GameState* g) {
+    RunProgress* progress = &g->run_progress[g->selected_run];
+    if (g->round > progress->best_round) progress->best_round = g->round;
+    if (!g->run_won) return;
+
+    progress->completed = 1;
+    for (int i = 0; i < RUN_COUNT; i++) {
+        if (RUN_DEFINITIONS[i].unlock_after == (int)g->selected_run) {
+            g->run_progress[i].unlocked = 1;
+        }
+    }
+}
+
+static void settle_result_progress(GameState* g) {
+    if (g->scene != SCENE_RESULT) return;
+
+    CombatResult result = combat_result(&g->friendly, &g->enemy);
+    if (result == COMBAT_ONGOING) return;
+
+    if (result == COMBAT_FRIENDLY_WIN && g->round >= MAX_RUN_ROUNDS) {
+        g->run_won = 1;
+    } else if (result == COMBAT_ENEMY_WIN) {
+        int damage = 1 + board_count_living(&g->enemy);
+        if (g->player_hp - damage <= 0) {
+            g->player_hp = 0;
+            g->run_lost = 1;
+        }
+    }
+
+    update_selected_run_progress(g);
+}
+
+static void prepare_next_round_setup(GameState* g) {
+    reset_board_units_to_base(&g->friendly);
+    reset_bench_units_to_base(g);
     seed_enemy_team(g);
     g->shop = shop_create((uint32_t)g->round);
     g->selected_bench_slot = -1;
@@ -83,6 +135,7 @@ static void prepare_next_round_setup(GameState* g) {
     g->shop_open = 0;
     g->combat_elapsed_ms = 0.0f;
     g->scene = SCENE_SETUP;
+    g->app_scene = APP_SCENE_RUN_SETUP;
 }
 
 static void start_new_run(GameState* g) {
@@ -95,19 +148,85 @@ static void start_new_run(GameState* g) {
     g->friendly = board_create();
     g->bench = bench_create();
     reset_setup_state(g);
+    g->app_scene = APP_SCENE_RUN_SETUP;
 }
 
 GameState game_create(void) {
-    GameState g;
+    GameState g = { 0 };
+    g.app_scene = APP_SCENE_MAIN_MENU;
+    g.selected_run = RUN_CLASSIC;
+    init_run_progress(&g);
     start_new_run(&g);
+    g.app_scene = APP_SCENE_MAIN_MENU;
     return g;
 }
 
+int game_run_is_unlocked(const GameState* g, RunId run) {
+    if (!g) return 0;
+    if (run < 0 || run >= RUN_COUNT) return 0;
+    return g->run_progress[run].unlocked;
+}
+
+void game_select_next_run(GameState* g) {
+    if (!g) return;
+    g->selected_run = (RunId)(((int)g->selected_run + 1) % RUN_COUNT);
+}
+
+void game_select_previous_run(GameState* g) {
+    if (!g) return;
+    g->selected_run = (RunId)(((int)g->selected_run + RUN_COUNT - 1) % RUN_COUNT);
+}
+
+int game_start_selected_run(GameState* g) {
+    if (!g) return 0;
+    if (!game_run_is_unlocked(g, g->selected_run)) return 0;
+
+    RunId selected = g->selected_run;
+    RunProgress progress[RUN_COUNT];
+    for (int i = 0; i < RUN_COUNT; i++) {
+        progress[i] = g->run_progress[i];
+    }
+
+    start_new_run(g);
+    g->selected_run = selected;
+    for (int i = 0; i < RUN_COUNT; i++) {
+        g->run_progress[i] = progress[i];
+    }
+    g->app_scene = APP_SCENE_RUN_SETUP;
+    return 1;
+}
+
+void game_open_main_menu(GameState* g) {
+    if (!g) return;
+    settle_result_progress(g);
+    g->app_scene = APP_SCENE_MAIN_MENU;
+    g->selected_bench_slot = -1;
+    g->unit_info_open = 0;
+    g->shop_open = 0;
+}
+
+void game_open_progress(GameState* g) {
+    if (!g) return;
+    g->app_scene = APP_SCENE_PROGRESS;
+}
+
+void game_open_settings(GameState* g) {
+    if (!g) return;
+    g->app_scene = APP_SCENE_SETTINGS;
+}
+
 int game_start_combat(GameState* g) {
+    if (g->app_scene != APP_SCENE_RUN_SETUP) return 0;
     if (g->scene != SCENE_SETUP) return 0;
     if (board_count_living(&g->friendly) == 0) return 0;
 
+    reset_board_units_to_base(&g->friendly);
+    reset_board_units_to_base(&g->enemy);
+    trait_apply_combat_synergies(&g->friendly, &g->friendly);
+    trait_apply_combat_synergies(&g->enemy, &g->enemy);
+
     g->scene = SCENE_COMBAT;
+    g->app_scene = APP_SCENE_RUN_COMBAT;
     g->combat_elapsed_ms = 0.0f;
     g->selected_bench_slot = -1;
     g->unit_info_open = 0;
@@ -124,6 +243,7 @@ void game_step(GameState* g, int dt_ms) {
     CombatResult r = combat_result(&g->friendly, &g->enemy);
     if (r != COMBAT_ONGOING) {
         g->scene = SCENE_RESULT;
+        g->app_scene = APP_SCENE_RUN_RESULT;
     }
 }
 
@@ -239,10 +359,13 @@ int game_continue_after_result(GameState* g) {
     CombatResult result = combat_result(&g->friendly, &g->enemy);
     if (result == COMBAT_ONGOING) return 0;
 
+    update_selected_run_progress(g);
+
     if (result == COMBAT_FRIENDLY_WIN) {
         g->gold += WIN_LOSS_GOLD;
         if (g->round >= MAX_RUN_ROUNDS) {
             g->run_won = 1;
+            update_selected_run_progress(g);
             return 1;
         }
     } else {
@@ -251,6 +374,7 @@ int game_continue_after_result(GameState* g) {
         if (g->player_hp <= 0) {
             g->player_hp = 0;
             g->run_lost = 1;
+            update_selected_run_progress(g);
             return 1;
         }
         g->gold += WIN_LOSS_GOLD;

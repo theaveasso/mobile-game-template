@@ -23,6 +23,7 @@ TEST_CASE(game_create_starts_shop_phase_with_economy) {
     GameState g = game_create();
 
     TEST_ASSERT_EQ(g.scene, SCENE_SETUP);
+    TEST_ASSERT_EQ(g.app_scene, APP_SCENE_MAIN_MENU);
     TEST_ASSERT_EQ(g.player_hp, STARTING_HP);
     TEST_ASSERT_EQ(g.round, 1);
     TEST_ASSERT_EQ(g.run_won, 0);
@@ -45,6 +46,85 @@ TEST_CASE(game_create_starts_shop_phase_with_economy) {
     for (int i = 0; i < BENCH_SLOT_COUNT; i++) {
         TEST_ASSERT(!g.bench.occupied[i]);
     }
+}
+
+TEST_CASE(game_menu_starts_with_classic_run_selected_and_only_classic_unlocked) {
+    GameState g = game_create();
+
+    TEST_ASSERT_EQ(g.app_scene, APP_SCENE_MAIN_MENU);
+    TEST_ASSERT_EQ(g.selected_run, RUN_CLASSIC);
+    TEST_ASSERT(game_run_is_unlocked(&g, RUN_CLASSIC));
+    TEST_ASSERT(!game_run_is_unlocked(&g, RUN_ELITE));
+    TEST_ASSERT(!game_run_is_unlocked(&g, RUN_BOSS));
+}
+
+TEST_CASE(game_menu_can_cycle_between_run_cards) {
+    GameState g = game_create();
+
+    game_select_next_run(&g);
+    TEST_ASSERT_EQ(g.selected_run, RUN_ELITE);
+
+    game_select_next_run(&g);
+    TEST_ASSERT_EQ(g.selected_run, RUN_BOSS);
+
+    game_select_next_run(&g);
+    TEST_ASSERT_EQ(g.selected_run, RUN_CLASSIC);
+
+    game_select_previous_run(&g);
+    TEST_ASSERT_EQ(g.selected_run, RUN_BOSS);
+}
+
+TEST_CASE(game_start_selected_run_opens_setup_for_unlocked_run) {
+    GameState g = game_create();
+    g.round = 7;
+    g.player_hp = 3;
+    g.gold = 99;
+
+    TEST_ASSERT(game_start_selected_run(&g));
+
+    TEST_ASSERT_EQ(g.app_scene, APP_SCENE_RUN_SETUP);
+    TEST_ASSERT_EQ(g.scene, SCENE_SETUP);
+    TEST_ASSERT_EQ(g.selected_run, RUN_CLASSIC);
+    TEST_ASSERT_EQ(g.round, 1);
+    TEST_ASSERT_EQ(g.player_hp, STARTING_HP);
+    TEST_ASSERT_EQ(g.gold, STARTING_GOLD);
+}
+
+TEST_CASE(game_start_selected_run_rejects_locked_run) {
+    GameState g = game_create();
+
+    game_select_next_run(&g);
+    TEST_ASSERT_EQ(g.selected_run, RUN_ELITE);
+    TEST_ASSERT(!game_start_selected_run(&g));
+
+    TEST_ASSERT_EQ(g.app_scene, APP_SCENE_MAIN_MENU);
+    TEST_ASSERT_EQ(g.selected_run, RUN_ELITE);
+}
+
+TEST_CASE(game_start_combat_is_blocked_from_main_menu) {
+    GameState g = game_create();
+
+    TEST_ASSERT(!game_start_combat(&g));
+    TEST_ASSERT_EQ(g.app_scene, APP_SCENE_MAIN_MENU);
+    TEST_ASSERT_EQ(g.scene, SCENE_SETUP);
+}
+
+TEST_CASE(game_open_main_menu_records_final_win_unlock_progress) {
+    GameState g = game_create();
+
+    TEST_ASSERT(game_start_selected_run(&g));
+    g.scene = SCENE_RESULT;
+    g.app_scene = APP_SCENE_RUN_RESULT;
+    g.round = MAX_RUN_ROUNDS;
+    g.enemy = board_create();
+    board_place_unit(&g.friendly, 0, unit_create_tiered(SHAPE_SQUARE, COLOR_BLUE, TIER_I));
+
+    game_open_main_menu(&g);
+
+    TEST_ASSERT_EQ(g.app_scene, APP_SCENE_MAIN_MENU);
+    TEST_ASSERT_EQ(g.run_progress[RUN_CLASSIC].best_round, MAX_RUN_ROUNDS);
+    TEST_ASSERT_EQ(g.run_progress[RUN_CLASSIC].completed, 1);
+    TEST_ASSERT(game_run_is_unlocked(&g, RUN_ELITE));
 }
 
 TEST_CASE(game_round_one_starts_with_one_enemy_unit) {
@@ -346,6 +426,7 @@ TEST_CASE(game_move_friendly_unit_swaps_occupied_cells) {
 
 TEST_CASE(game_start_combat_requires_living_friendly_unit) {
     GameState g = game_create();
+    TEST_ASSERT(game_start_selected_run(&g));
     g.friendly = board_create();
 
     TEST_ASSERT(!game_start_combat(&g));
@@ -355,6 +436,40 @@ TEST_CASE(game_start_combat_requires_living_friendly_unit) {
     TEST_ASSERT(game_start_combat(&g));
     TEST_ASSERT_EQ(g.scene, SCENE_COMBAT);
     TEST_ASSERT_EQ(g.shop_open, 0);
+}
+
+TEST_CASE(game_start_combat_applies_active_synergies) {
+    GameState g = game_create();
+    TEST_ASSERT(game_start_selected_run(&g));
+    g.friendly = board_create();
+    board_place_unit(&g.friendly, 0, unit_create_tiered(SHAPE_SQUARE, COLOR_RED, TIER_I));
+    board_place_unit(&g.friendly, 1, unit_create_tiered(SHAPE_SQUARE, COLOR_BLUE, TIER_I));
+    int base_hp = g.friendly.cells[0].max_hp;
+
+    TEST_ASSERT(game_start_combat(&g));
+
+    TEST_ASSERT_EQ(g.friendly.cells[0].max_hp, base_hp + 20);
+    TEST_ASSERT_EQ(g.friendly.cells[0].hp, base_hp + 20);
+}
+
+TEST_CASE(game_continue_after_result_restores_setup_stats_before_next_round) {
+    GameState g = game_create();
+    TEST_ASSERT(game_start_selected_run(&g));
+    g.friendly = board_create();
+    board_place_unit(&g.friendly, 0, unit_create_tiered(SHAPE_SQUARE, COLOR_RED, TIER_I));
+    board_place_unit(&g.friendly, 1, unit_create_tiered(SHAPE_SQUARE, COLOR_BLUE, TIER_I));
+    int base_hp = g.friendly.cells[0].max_hp;
+
+    TEST_ASSERT(game_start_combat(&g));
+    g.scene = SCENE_RESULT;
+    g.app_scene = APP_SCENE_RUN_RESULT;
+    g.enemy = board_create();
+
+    TEST_ASSERT(game_continue_after_result(&g));
+
+    TEST_ASSERT_EQ(g.scene, SCENE_SETUP);
+    TEST_ASSERT_EQ(g.friendly.cells[0].max_hp, base_hp);
+    TEST_ASSERT_EQ(g.friendly.cells[0].hp, base_hp);
 }
 
 TEST_CASE(game_toggle_shop_opens_and_closes_shop_popup) {
@@ -534,6 +649,12 @@ TEST_CASE(game_buy_shop_slot_resolves_chain_merge_to_three_stars) {
 void run_game_tests(void) {
     printf("Game tests:\n");
     TEST_RUN(game_create_starts_shop_phase_with_economy);
+    TEST_RUN(game_menu_starts_with_classic_run_selected_and_only_classic_unlocked);
+    TEST_RUN(game_menu_can_cycle_between_run_cards);
+    TEST_RUN(game_start_selected_run_opens_setup_for_unlocked_run);
+    TEST_RUN(game_start_selected_run_rejects_locked_run);
+    TEST_RUN(game_start_combat_is_blocked_from_main_menu);
+    TEST_RUN(game_open_main_menu_records_final_win_unlock_progress);
     TEST_RUN(game_round_one_starts_with_one_enemy_unit);
     TEST_RUN(game_buy_shop_slot_spends_gold_and_adds_to_bench);
     TEST_RUN(game_buy_shop_slot_fails_without_enough_gold);
@@ -557,6 +678,8 @@ void run_game_tests(void) {
     TEST_RUN(game_move_friendly_unit_moves_to_empty_cell);
     TEST_RUN(game_move_friendly_unit_swaps_occupied_cells);
     TEST_RUN(game_start_combat_requires_living_friendly_unit);
+    TEST_RUN(game_start_combat_applies_active_synergies);
+    TEST_RUN(game_continue_after_result_restores_setup_stats_before_next_round);
     TEST_RUN(game_toggle_shop_opens_and_closes_shop_popup);
     TEST_RUN(game_close_shop_hides_shop_popup);
     TEST_RUN(game_continue_after_win_advances_round_and_grants_gold);

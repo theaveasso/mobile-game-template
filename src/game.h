@@ -11,8 +11,40 @@ typedef enum {
     SCENE_RESULT,      // Win/lose screen shown.
 } Scene;
 
+typedef enum {
+    APP_SCENE_MAIN_MENU,
+    APP_SCENE_RUN_SETUP,
+    APP_SCENE_RUN_COMBAT,
+    APP_SCENE_RUN_RESULT,
+    APP_SCENE_PROGRESS,
+    APP_SCENE_SETTINGS,
+} AppScene;
+
+typedef enum {
+    RUN_CLASSIC,
+    RUN_ELITE,
+    RUN_BOSS,
+    RUN_COUNT,
+} RunId;
+
 typedef struct {
+    const char* name;
+    const char* theme;
+    const char* difficulty;
+    int unlock_after;
+} RunDefinition;
+
+typedef struct {
+    int unlocked;
+    int best_round;
+    int completed;
+} RunProgress;
+
+typedef struct {
+    AppScene app_scene;
     Scene  scene;
+    RunId  selected_run;
+    RunProgress run_progress[RUN_COUNT];
     Board  friendly;
     Board  enemy;
     Shop   shop;
@@ -31,7 +63,16 @@ typedef struct {
     float  combat_elapsed_ms;   // time since combat started
 } GameState;
 
+extern const RunDefinition RUN_DEFINITIONS[RUN_COUNT];
+
 GameState game_create(void);
+int       game_start_selected_run(GameState* g);
+int       game_run_is_unlocked(const GameState* g, RunId run);
+void      game_select_next_run(GameState* g);
+void      game_select_previous_run(GameState* g);
+void      game_open_main_menu(GameState* g);
+void      game_open_progress(GameState* g);
+void      game_open_settings(GameState* g);
 int       game_start_combat(GameState* g);
 void      game_step(GameState* g, int dt_ms);
 void      game_reset_to_setup(GameState* g);
