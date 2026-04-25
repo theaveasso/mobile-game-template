@@ -1183,7 +1183,7 @@ Goal: Draw each unit as a flat 2D shape in its color inside its board cell.
 **Files:**
 - Modify: `src/render.c`
 
-- [ ] **Step 1: Add a color palette and unit-draw helper to `src/render.c`**
+- [x] **Step 1: Add a color palette and unit-draw helper to `src/render.c`**
 
 Add to the top of `src/render.c` (after existing `#define` lines):
 
@@ -1229,7 +1229,7 @@ static void draw_unit_shape(UnitShape shape, Color c, int cx, int cy, int size) 
 }
 ```
 
-- [ ] **Step 2: Draw units on the board inside `render_board`**
+- [x] **Step 2: Draw units on the board inside `render_board`**
 
 Replace the existing `render_board` function with:
 
@@ -1272,7 +1272,7 @@ void render_board(const Board* board, int top_y, int cell_size) {
 }
 ```
 
-- [ ] **Step 3: Build and run**
+- [x] **Step 3: Build and run**
 
 ```bash
 cmake --build --preset debug
@@ -1305,48 +1305,47 @@ Goal: Show a FIGHT button in SCENE_SETUP. Tapping it starts combat. Combat plays
 **Files:**
 - Modify: `src/render.c`, `src/render.h`, `src/main.c`
 
-- [ ] **Step 1: Add a button-rendering and hit-testing helper to `src/render.h`**
+- [x] **Step 1: Add a button-rendering and hit-testing helper to `src/render.h`**
 
 Append to `src/render.h` BEFORE `#endif`:
 
 ```c
-typedef struct {
-    int x, y, w, h;
-} Rect;
-
 // Returns 1 if rect is being clicked this frame.
-int render_button(Rect r, const char* label);
+int render_button(Rectangle bounds, const char* label);
 
-extern const Rect FIGHT_BUTTON_RECT;
-extern const Rect RESET_BUTTON_RECT;
+extern const Rectangle FIGHT_BUTTON_RECT;
+extern const Rectangle RESET_BUTTON_RECT;
 ```
 
-- [ ] **Step 2: Implement the button in `src/render.c`**
+- [x] **Step 2: Implement the button in `src/render.c`**
 
 Append to `src/render.c`:
 
 ```c
-const Rect FIGHT_BUTTON_RECT = { 75, WINDOW_HEIGHT - 100, 300, 70 };
-const Rect RESET_BUTTON_RECT = { 75, WINDOW_HEIGHT - 100, 300, 70 };
+const Rectangle FIGHT_BUTTON_RECT = { 75, WINDOW_HEIGHT - 100, 300, 70 };
+const Rectangle RESET_BUTTON_RECT = { 75, WINDOW_HEIGHT - 100, 300, 70 };
 
-int render_button(Rect r, const char* label) {
-    Vector2 m = GetMousePosition();
-    int hover = (m.x >= r.x && m.x <= r.x + r.w &&
-                 m.y >= r.y && m.y <= r.y + r.h);
+int render_button(Rectangle bounds, const char* label) {
+    Vector2 mouse = GetMousePosition();
+    int hover = CheckCollisionPointRec(mouse, bounds);
     Color fill  = hover ? (Color){ 60, 60, 60, 255 } : (Color){ 40, 40, 40, 255 };
     Color stroke = (Color){ 120, 120, 120, 255 };
 
-    DrawRectangle(r.x, r.y, r.w, r.h, fill);
-    DrawRectangleLines(r.x, r.y, r.w, r.h, stroke);
+    DrawRectangleRec(bounds, fill);
+    DrawRectangleLinesEx(bounds, 1.0f, stroke);
 
     int text_w = MeasureText(label, 30);
-    DrawText(label, r.x + (r.w - text_w) / 2, r.y + (r.h - 30) / 2, 30, RAYWHITE);
+    DrawText(label,
+             (int)(bounds.x + (bounds.width - text_w) / 2.0f),
+             (int)(bounds.y + (bounds.height - 30) / 2.0f),
+             30,
+             RAYWHITE);
 
     return hover && IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
 }
 ```
 
-- [ ] **Step 3: Use the button in `render_game` and handle transitions in `main.c`**
+- [x] **Step 3: Use the button in `render_game` and handle transitions in `main.c`**
 
 Modify `render_game` in `src/render.c` so it returns a command. Easier: keep render side-effect-free and do input handling in `main.c`. Replace `render_game` with:
 
@@ -1446,7 +1445,7 @@ Goal: When combat ends, show a centered banner declaring the outcome.
 **Files:**
 - Modify: `src/render.h`, `src/render.c`, `src/main.c`
 
-- [ ] **Step 1: Add `render_result_overlay` to `src/render.h`**
+- [x] **Step 1: Add `render_result_overlay` to `src/render.h`**
 
 Append to `src/render.h` BEFORE `#endif`:
 
@@ -1454,7 +1453,7 @@ Append to `src/render.h` BEFORE `#endif`:
 void render_result_overlay(const GameState* g);
 ```
 
-- [ ] **Step 2: Implement in `src/render.c`**
+- [x] **Step 2: Implement in `src/render.c`**
 
 Append to `src/render.c`:
 
@@ -1487,7 +1486,7 @@ void render_result_overlay(const GameState* g) {
 }
 ```
 
-- [ ] **Step 3: Call overlay from `src/main.c`**
+- [x] **Step 3: Call overlay from `src/main.c`**
 
 In `src/main.c`, in the `BeginDrawing()` block, add the overlay call BEFORE the result button:
 
@@ -1534,7 +1533,7 @@ Goal: Confirm the full multi-file build works on Android end-to-end. This is the
 **Files:**
 - Verify: `src/Makefile.Android` (already updated in Task 1)
 
-- [ ] **Step 1: Build the Android APK using the existing automation**
+- [x] **Step 1: Build the Android APK using the existing automation**
 
 ```bash
 ./android.bat
@@ -1549,7 +1548,7 @@ If the build asks for a path like `src/game01.h` — it already works because al
 
 If test_runner accidentally got pulled into the Android build, verify only desktop CMake references `test/` — Makefile.Android should not.
 
-- [ ] **Step 3: Install and run on device**
+- [x] **Step 3: Install and run on device**
 
 ```bash
 ./android.bat
@@ -1558,16 +1557,16 @@ If test_runner accidentally got pulled into the Android build, verify only deskt
 
 Expected: APK installs, app launches on device, you see the portrait window with two boards, FIGHT button, and the combat playable end-to-end.
 
-- [ ] **Step 4: On-device sanity checklist**
+- [x] **Step 4: On-device sanity checklist**
 
-- [ ] App launches without crash
-- [ ] Portrait orientation is correct (not sideways)
-- [ ] Both boards visible
-- [ ] Shapes and colors render correctly
-- [ ] Tapping FIGHT starts combat
-- [ ] Result overlay appears
-- [ ] FIGHT AGAIN resets
-- [ ] Touch input registers on the button area
+- [x] App launches without crash
+- [x] Portrait orientation is correct (not sideways)
+- [x] Both boards visible
+- [x] Shapes and colors render correctly
+- [x] Tapping FIGHT starts combat
+- [x] Result overlay appears
+- [x] FIGHT AGAIN resets
+- [x] Touch input registers on the button area
 
 - [ ] **Step 5: If orientation is wrong, fix AndroidManifest.xml**
 

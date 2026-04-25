@@ -8,6 +8,9 @@ set(GAME_SOURCES
     src/unit.c
     src/board.c
     src/combat.c
+    src/shop.c
+    src/bench.c
+    src/layout.c
     src/render.c
     src/game.c
 )
@@ -26,12 +29,21 @@ set(TEST_SOURCES
     test/test_unit.c
     test/test_board.c
     test/test_combat.c
+    test/test_shop.c
+    test/test_bench.c
+    test/test_game.c
+    test/test_layout.c
     src/unit.c
     src/board.c
     src/combat.c
+    src/shop.c
+    src/bench.c
+    src/layout.c
+    src/game.c
 )
 
 add_executable(test_runner ${TEST_SOURCES})
 target_include_directories(test_runner PRIVATE src test)
+target_link_libraries(test_runner PRIVATE raylib)
 
 add_test(NAME all_tests COMMAND test_runner)

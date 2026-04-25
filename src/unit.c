@@ -15,11 +15,19 @@ static const ShapeStats SHAPE_STATS[SHAPE_COUNT] = {
     [SHAPE_DIAMOND]  = { .hp = 25,  .attack = 18, .attack_cooldown_ms = 900  },
 };
 
-Unit unit_create(UnitShape shape, UnitColor color) {
+static UnitTier valid_tier_or_default(UnitTier tier) {
+    if (tier < TIER_I || tier >= TIER_COUNT) return TIER_I;
+    return tier;
+}
+
+Unit unit_create_tiered(UnitShape shape, UnitColor color, UnitTier tier) {
+    tier = valid_tier_or_default(tier);
     ShapeStats s = SHAPE_STATS[shape];
     Unit u = {
         .shape = shape,
         .color = color,
+        .tier = tier,
+        .cost = (int)tier + 1,
         .stars = 1,
         .hp = s.hp,
         .max_hp = s.hp,
@@ -28,6 +36,18 @@ Unit unit_create(UnitShape shape, UnitColor color) {
         .cooldown_remaining_ms = 0,
     };
     return u;
+}
+
+int unit_promote_star(Unit* unit) {
+    if (unit->stars >= 3) return 0;
+
+    ShapeStats s = SHAPE_STATS[unit->shape];
+    unit->stars++;
+    unit->max_hp = s.hp * unit->stars;
+    unit->hp = unit->max_hp;
+    unit->attack = s.attack * unit->stars;
+    unit->cooldown_remaining_ms = 0;
+    return 1;
 }
 
 void unit_take_damage(Unit* unit, int damage) {

@@ -6,7 +6,7 @@
 // Helper: build a board with one unit at cell 0 for convenience.
 static Board single_unit_board(UnitShape s, UnitColor c) {
     Board b = board_create();
-    board_place_unit(&b, 0, unit_create(s, c));
+    board_place_unit(&b, 0, unit_create_tiered(s, c, TIER_I));
     return b;
 }
 
@@ -80,17 +80,17 @@ TEST_CASE(combat_is_deterministic) {
     // Same initial state, same tick sequence -> same result.
     Board a1 = board_create();
     Board a2 = board_create();
-    board_place_unit(&a1, 0, unit_create(SHAPE_TRIANGLE, COLOR_RED));
-    board_place_unit(&a1, 4, unit_create(SHAPE_SQUARE,   COLOR_BLUE));
-    board_place_unit(&a2, 0, unit_create(SHAPE_TRIANGLE, COLOR_RED));
-    board_place_unit(&a2, 4, unit_create(SHAPE_SQUARE,   COLOR_BLUE));
+    board_place_unit(&a1, 0, unit_create_tiered(SHAPE_TRIANGLE, COLOR_RED, TIER_I));
+    board_place_unit(&a1, 4, unit_create_tiered(SHAPE_SQUARE,   COLOR_BLUE, TIER_I));
+    board_place_unit(&a2, 0, unit_create_tiered(SHAPE_TRIANGLE, COLOR_RED, TIER_I));
+    board_place_unit(&a2, 4, unit_create_tiered(SHAPE_SQUARE,   COLOR_BLUE, TIER_I));
 
     Board b1 = board_create();
     Board b2 = board_create();
-    board_place_unit(&b1, 0, unit_create(SHAPE_CIRCLE,  COLOR_GREEN));
-    board_place_unit(&b1, 8, unit_create(SHAPE_DIAMOND, COLOR_PURPLE));
-    board_place_unit(&b2, 0, unit_create(SHAPE_CIRCLE,  COLOR_GREEN));
-    board_place_unit(&b2, 8, unit_create(SHAPE_DIAMOND, COLOR_PURPLE));
+    board_place_unit(&b1, 0, unit_create_tiered(SHAPE_CIRCLE,  COLOR_GREEN, TIER_I));
+    board_place_unit(&b1, 8, unit_create_tiered(SHAPE_DIAMOND, COLOR_PURPLE, TIER_I));
+    board_place_unit(&b2, 0, unit_create_tiered(SHAPE_CIRCLE,  COLOR_GREEN, TIER_I));
+    board_place_unit(&b2, 8, unit_create_tiered(SHAPE_DIAMOND, COLOR_PURPLE, TIER_I));
 
     for (int i = 0; i < 200; i++) {
         combat_step(&a1, &b1, 16);

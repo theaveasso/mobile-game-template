@@ -4,6 +4,17 @@
 #define GAME01_TITLE   "game01"
 #define WINDOW_WIDTH   450
 #define WINDOW_HEIGHT  900
+#define STARTING_GOLD  4
+#define SHOP_REROLL_COST 2
+#define STARTING_HP 30
+#define MAX_RUN_ROUNDS 15
+#define WIN_LOSS_GOLD 5
+#define STARTING_PLAYER_LEVEL 1
+#define MAX_PLAYER_LEVEL 5
+#define STARTING_TEAM_SIZE 3
+#define MAX_TEAM_SIZE 7
+#define XP_BUY_COST 4
+#define XP_PER_BUY 4
 
 typedef enum {
     SHAPE_TRIANGLE,
@@ -23,9 +34,18 @@ typedef enum {
     COLOR_COUNT
 } UnitColor;
 
+typedef enum {
+    TIER_I,
+    TIER_II,
+    TIER_III,
+    TIER_COUNT
+} UnitTier;
+
 typedef struct {
     UnitShape shape;
     UnitColor color;
+    UnitTier tier;
+    int cost;
     int stars;                  // 1, 2, or 3
     int hp;                     // current HP
     int max_hp;

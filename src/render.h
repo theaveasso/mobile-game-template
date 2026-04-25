@@ -3,9 +3,32 @@
 
 #include "game01.h"
 #include "game.h"
+#include "raylib.h"
 
 void render_background(void);
+void render_begin_virtual(void);
+void render_end_virtual(void);
 void render_board(const Board* board, int top_y, int cell_size);
 void render_game(const GameState* g);
+void render_result_overlay(const GameState* g);
+void render_drag_ghost(const Unit* unit, Vector2 position);
+
+Vector2 render_screen_to_virtual(Vector2 point);
+
+int render_button(Rectangle bounds, const char* label);
+
+Rectangle render_shop_slot_rect(int slot);
+Rectangle render_bench_slot_rect(int slot);
+Rectangle render_friendly_board_cell_rect(int cell);
+Rectangle render_enemy_board_cell_rect(int cell);
+Rectangle render_shop_panel_rect(void);
+Rectangle render_unit_info_panel_rect(void);
+
+extern const Rectangle FIGHT_BUTTON_RECT;
+extern const Rectangle RESET_BUTTON_RECT;
+extern const Rectangle REROLL_BUTTON_RECT;
+extern const Rectangle SHOP_BUTTON_RECT;
+extern const Rectangle LEVEL_BUTTON_RECT;
+extern const Rectangle SELL_BUTTON_RECT;
 
 #endif

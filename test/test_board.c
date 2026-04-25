@@ -12,7 +12,7 @@ TEST_CASE(board_starts_empty) {
 
 TEST_CASE(board_place_and_get_unit) {
     Board b = board_create();
-    Unit u = unit_create(SHAPE_TRIANGLE, COLOR_RED);
+    Unit u = unit_create_tiered(SHAPE_TRIANGLE, COLOR_RED, TIER_I);
     board_place_unit(&b, 4, u);  // center cell
     Unit* got = board_get_unit(&b, 4);
     TEST_ASSERT(got != NULL);
@@ -21,7 +21,7 @@ TEST_CASE(board_place_and_get_unit) {
 
 TEST_CASE(board_remove_unit) {
     Board b = board_create();
-    Unit u = unit_create(SHAPE_SQUARE, COLOR_BLUE);
+    Unit u = unit_create_tiered(SHAPE_SQUARE, COLOR_BLUE, TIER_I);
     board_place_unit(&b, 0, u);
     board_remove_unit(&b, 0);
     TEST_ASSERT(board_get_unit(&b, 0) == NULL);
@@ -29,8 +29,8 @@ TEST_CASE(board_remove_unit) {
 
 TEST_CASE(board_count_living_ignores_dead_units) {
     Board b = board_create();
-    board_place_unit(&b, 0, unit_create(SHAPE_TRIANGLE, COLOR_RED));
-    board_place_unit(&b, 1, unit_create(SHAPE_SQUARE, COLOR_BLUE));
+    board_place_unit(&b, 0, unit_create_tiered(SHAPE_TRIANGLE, COLOR_RED, TIER_I));
+    board_place_unit(&b, 1, unit_create_tiered(SHAPE_SQUARE, COLOR_BLUE, TIER_I));
     TEST_ASSERT_EQ(board_count_living(&b), 2);
 
     Unit* dead = board_get_unit(&b, 1);
@@ -42,7 +42,7 @@ TEST_CASE(board_is_defeated_when_no_living_units) {
     Board b = board_create();
     TEST_ASSERT(board_is_defeated(&b));
 
-    board_place_unit(&b, 0, unit_create(SHAPE_TRIANGLE, COLOR_RED));
+    board_place_unit(&b, 0, unit_create_tiered(SHAPE_TRIANGLE, COLOR_RED, TIER_I));
     TEST_ASSERT(!board_is_defeated(&b));
 
     Unit* u = board_get_unit(&b, 0);

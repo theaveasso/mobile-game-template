@@ -3,7 +3,8 @@
 
 #include "game01.h"
 
-Unit unit_create(UnitShape shape, UnitColor color);
+Unit unit_create_tiered(UnitShape shape, UnitColor color, UnitTier tier);
+int  unit_promote_star(Unit* unit);
 void unit_take_damage(Unit* unit, int damage);
 int  unit_is_alive(const Unit* unit);
 
