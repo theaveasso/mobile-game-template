@@ -60,7 +60,7 @@ PROJECT_LIBRARY_NAME   ?= main
 PROJECT_BUILD_ID       ?= android
 PROJECT_BUILD_PATH     ?= $(PROJECT_BUILD_ID).$(PROJECT_NAME)
 PROJECT_RESOURCES_PATH ?= resources
-PROJECT_SOURCE_FILES   ?= main.c
+PROJECT_SOURCE_FILES   ?= main.c core/game.c
 APK_NAME               ?= $(PROJECT_NAME).apk
 APK_OUTPUT_DIR         ?= ..\dist
 APK_OUTPUT_PATH         = $(APK_OUTPUT_DIR)\$(APK_NAME)
@@ -188,11 +188,6 @@ create_temp_project_dirs:
 	if not exist $(PROJECT_BUILD_PATH)\assets mkdir $(PROJECT_BUILD_PATH)\assets
 	if not exist $(PROJECT_BUILD_PATH)\assets\$(PROJECT_RESOURCES_PATH) mkdir $(PROJECT_BUILD_PATH)\assets\$(PROJECT_RESOURCES_PATH)
 	if not exist $(PROJECT_BUILD_PATH)\obj\screens mkdir $(PROJECT_BUILD_PATH)\obj\screens
-	$(foreach dir, $(PROJECT_SOURCE_DIRS), $(call create_dir, $(dir)))
-
-define create_dir
-    if not exist $(PROJECT_BUILD_PATH)\obj\$(1) mkdir $(PROJECT_BUILD_PATH)\obj\$(1)
-endef
     
 # Copy required shared libs for integration into APK
 # NOTE: If using shared libs they are loaded by generated NativeLoader.java
@@ -271,6 +266,7 @@ compile_project_code: $(OBJS)
 # Compile all .c files required into object (.o) files
 # NOTE: Those files will be linked into a shared library
 $(PROJECT_BUILD_PATH)/obj/%.o:%.c
+	if not exist "$(subst /,\,$(dir $@))" mkdir "$(subst /,\,$(dir $@))"
 	$(CC) -c $^ -o $@ $(INCLUDE_PATHS) $(CFLAGS) --sysroot=$(ANDROID_TOOLCHAIN)/sysroot 
     
 # Compile project .java code into .class (Java bytecode) 
