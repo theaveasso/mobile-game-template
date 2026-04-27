@@ -31,7 +31,9 @@ set(CMAKE_C_STANDARD 11)
 
 set(GAME_SOURCES
     src/main.c
-    src/core/game.c
+    src/game.c
+    src/input.c
+    src/render.c
 )
 
 add_executable(${PROJECT_NAME} ${GAME_SOURCES})

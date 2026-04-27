@@ -1,7 +1,9 @@
 #include "raylib.h"
 
-#include "core/game.h"
 #include "defines.h"
+#include "game.h"
+#include "input.h"
+#include "render.h"
 
 int main(void) {
     const int screen_width = APP_SCREEN_WIDTH;
@@ -12,26 +14,38 @@ int main(void) {
     SetTargetFPS(60);
 
     Game game = { 0 };
-    if (!GameInit(&game, APP_SCREEN_WIDTH, APP_SCREEN_HEIGHT)) {
+    Input input = { 0 };
+    Renderer renderer = { 0 };
+
+    if (!GameInit(&game)) {
         CloseWindow();
         return 1;
     }
 
-    GameResize(&game, GetScreenWidth(), GetScreenHeight());
+    if (!RendererInit(&renderer, APP_SCREEN_WIDTH, APP_SCREEN_HEIGHT)) {
+        GameShutdown(&game);
+        CloseWindow();
+        return 1;
+    }
+
+    InputInit(&input);
+    RendererResize(&renderer, GetScreenWidth(), GetScreenHeight());
 
     while (!WindowShouldClose()) {
         PollInputEvents();
 
         const int output_width = GetScreenWidth();
         const int output_height = GetScreenHeight();
-        if (output_width != game.output_width || output_height != game.output_height) {
-            GameResize(&game, output_width, output_height);
+        if (output_width != renderer.output_width || output_height != renderer.output_height) {
+            RendererResize(&renderer, output_width, output_height);
         }
 
-        GameUpdate(&game, GetFrameTime());
-        GameDraw(&game);
+        InputUpdate(&input, &renderer);
+        GameUpdate(&game, &input, GetFrameTime());
+        RendererDraw(&renderer, &game);
     }
 
+    RendererShutdown(&renderer);
     GameShutdown(&game);
     CloseWindow();
     return 0;
