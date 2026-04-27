@@ -97,9 +97,9 @@ void RendererDraw(Renderer *renderer, const Game *game) {
                (Vector2){ 56, 270 }, 24, 2, DARKBLUE);
 
     if (game->debug_touch_active) {
-        DrawCircleV((Vector2){ game->debug_touch_x, game->debug_touch_y }, 24.0f, ORANGE);
-        DrawCircleLines((int)game->debug_touch_x, (int)game->debug_touch_y, 24.0f, BLACK);
-        DrawText(TextFormat("touch %.0f, %.0f", game->debug_touch_x, game->debug_touch_y),
+        DrawCircleV(game->debug_touch_position, 24.0f, ORANGE);
+        DrawCircleLines((int)game->debug_touch_position.x, (int)game->debug_touch_position.y, 24.0f, BLACK);
+        DrawText(TextFormat("touch %.0f, %.0f", game->debug_touch_position.x, game->debug_touch_position.y),
                  56, 318, 24, ORANGE);
     } else {
         DrawText("touch: none", 56, 318, 24, GRAY);

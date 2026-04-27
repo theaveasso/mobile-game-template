@@ -4,11 +4,12 @@
 #include <stdbool.h>
 
 #include "input.h"
+#include "raylib.h"
 
 typedef struct Game {
     float elapsed_time;
-    float debug_touch_x;
-    float debug_touch_y;
+
+    Vector2 debug_touch_position;
     bool debug_touch_active;
 } Game;
 

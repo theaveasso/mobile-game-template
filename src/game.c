@@ -28,7 +28,6 @@ void GameUpdate(Game *game, const Input *input, float dt) {
 
     game->debug_touch_active = input != NULL && input->pointer_down && input->pointer_inside;
     if (game->debug_touch_active) {
-        game->debug_touch_x = input->pointer_x;
-        game->debug_touch_y = input->pointer_y;
+        game->debug_touch_position = (Vector2){ input->pointer_x, input->pointer_y };
     }
 }
