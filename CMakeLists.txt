@@ -31,6 +31,7 @@ set(CMAKE_C_STANDARD 11)
 
 set(GAME_SOURCES
     src/main.c
+    src/app.c
     src/game.c
     src/input.c
     src/render.c
