@@ -1,12 +1,20 @@
 CompileFlags:
-  CompilationDatabase: build/debug
   Remove:
     - "-external:W*"
     - "-external:I*"
     - "/external:W*"
     - "/external:I*"
   Add:
-    - "-ID:/game01/build/debug/vcpkg_installed/x64-windows/include"
+    - "-Ibuild/debug/vcpkg_installed/x64-windows/include"
+    - "-Ibuild/debug/vcpkg_installed/x64-linux/include"
+    - "-Ibuild/debug/vcpkg_installed/x64-osx/include"
+    - "-Ibuild/debug/vcpkg_installed/arm64-osx/include"
+    - "-Ibuild/vs/vcpkg_installed/x64-windows/include"
+    - "-I../build/debug/vcpkg_installed/x64-windows/include"
+    - "-I../build/debug/vcpkg_installed/x64-linux/include"
+    - "-I../build/debug/vcpkg_installed/x64-osx/include"
+    - "-I../build/debug/vcpkg_installed/arm64-osx/include"
+    - "-I../build/vs/vcpkg_installed/x64-windows/include"
     - "-Wno-unknown-attributes"
     - "-Wno-microsoft-include"
     - "-Wno-pragma-pack"

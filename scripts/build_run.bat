@@ -1,8 +1,13 @@
 @echo off
 rem Usage: build_run.bat [debug|release]   (default: debug)
-rem Builds via the matching CMake preset, then runs build\<cfg>\game01.exe.
+rem Builds via the matching CMake preset, then runs the configured desktop executable.
 
 setlocal
+
+set "ROOT=%~dp0.."
+set "CONFIG=%ROOT%\template.ini"
+set "project_name=mobile-game-template"
+if exist "%CONFIG%" call :load_config "%CONFIG%"
 
 set "CFG=%~1"
 if "%CFG%"=="" set "CFG=debug"
@@ -31,6 +36,11 @@ call "%VSINSTALL%\VC\Auxiliary\Build\vcvars64.bat" >nul || exit /b 1
 :after_env
 
 rem ---- 2. Configure (only if cache is missing) ----
+cd /d "%ROOT%"
+
+rem Close a previous desktop run so the linker can overwrite the executable.
+taskkill /IM "%project_name%.exe" /F >nul 2>nul
+
 if not exist "build\%CFG%\CMakeCache.txt" (
     cmake --preset %CFG% || exit /b 1
 )
@@ -39,7 +49,11 @@ rem ---- 3. Build ----
 cmake --build --preset %CFG% || exit /b 1
 
 rem ---- 4. Run ----
-set "EXE=build\%CFG%\game01.exe"
+set "EXE=build\%CFG%\%project_name%.exe"
+if not exist "%EXE%" (
+    if /I "%CFG%"=="debug" set "EXE=build\%CFG%\Debug\%project_name%.exe"
+    if /I "%CFG%"=="release" set "EXE=build\%CFG%\Release\%project_name%.exe"
+)
 if not exist "%EXE%" (
     echo [build_run] %EXE% not found after build. 1>&2
     exit /b 1
@@ -49,3 +63,16 @@ echo.
 echo === Running %EXE% ===
 "%EXE%"
 exit /b %ERRORLEVEL%
+
+:load_config
+for /f "usebackq eol=# tokens=1,* delims==" %%A in ("%~1") do call :set_config "%%A" "%%B"
+exit /b 0
+
+:set_config
+set "KEY=%~1"
+set "VALUE=%~2"
+if "%KEY%"=="" exit /b 0
+if "%KEY:~0,1%"=="[" exit /b 0
+if "%KEY:~0,1%"==";" exit /b 0
+if /I "%KEY%"=="project_name" set "project_name=%VALUE%"
+exit /b 0

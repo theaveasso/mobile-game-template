@@ -5,9 +5,10 @@
 build/
 
 # Android build artifacts
-src/android.game01/
-src/*.apk
-src/*.apk.idsig
+src/android.*/
+dist/
+*.apk
+*.apk.idsig
 src/*.keystore
 
 # IDE

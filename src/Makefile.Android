@@ -55,12 +55,15 @@ ANDROID_BUILD_TOOLS    ?= $(ANDROID_HOME)/build-tools/34.0.0
 ANDROID_PLATFORM_TOOLS  = $(ANDROID_HOME)/platform-tools
 
 # Android project configuration variables
-PROJECT_NAME           ?= game01
+PROJECT_NAME           ?= mobile-game-template
 PROJECT_LIBRARY_NAME   ?= main
 PROJECT_BUILD_ID       ?= android
 PROJECT_BUILD_PATH     ?= $(PROJECT_BUILD_ID).$(PROJECT_NAME)
 PROJECT_RESOURCES_PATH ?= resources
-PROJECT_SOURCE_FILES   ?= main.c unit.c board.c combat.c shop.c bench.c layout.c render.c game.c
+PROJECT_SOURCE_FILES   ?= main.c
+APK_NAME               ?= $(PROJECT_NAME).apk
+APK_OUTPUT_DIR         ?= ..\dist
+APK_OUTPUT_PATH         = $(APK_OUTPUT_DIR)\$(APK_NAME)
 
 # Some source files are placed in directories, when compiling to some 
 # output directory other than source, that directory must pre-exist.
@@ -69,15 +72,16 @@ PROJECT_SOURCE_FILES   ?= main.c unit.c board.c combat.c shop.c bench.c layout.c
 PROJECT_SOURCE_DIRS     = $(sort $(dir $(PROJECT_SOURCE_FILES)))
 
 # Android app configuration variables
-APP_LABEL_NAME         ?= rGame
-APP_COMPANY_NAME       ?= grayfi5hstudio
-APP_PRODUCT_NAME       ?= game01
+APP_LABEL_NAME         ?= Mobile Game Template
+APP_PACKAGE_NAME       ?= com.grayfi5hstudio.mobilegametemplate
+APP_PACKAGE_PATH       ?= com\grayfi5hstudio\mobilegametemplate
 APP_VERSION_CODE       ?= 1
 APP_VERSION_NAME       ?= 1.0
 APP_ICON_LDPI          ?= $(RAYLIB_PATH)\logo\raylib_36x36.png
 APP_ICON_MDPI          ?= $(RAYLIB_PATH)\logo\raylib_48x48.png
 APP_ICON_HDPI          ?= $(RAYLIB_PATH)\logo\raylib_72x72.png
 APP_SCREEN_ORIENTATION ?= portrait
+APP_ORIENTATION        ?= 1
 APP_KEYSTORE_PASS      ?= raylib
 
 # Library type used for raylib: STATIC (.a) or SHARED (.so/.dll)
@@ -122,7 +126,9 @@ CFLAGS += -ffunction-sections -funwind-tables -fstack-protector-strong -fPIC
 # Compiler options for the linker
 CFLAGS += -Wall -Wa,--noexecstack -Wformat -Werror=format-security -no-canonical-prefixes
 # Preprocessor macro definitions
-CFLAGS += -D__ANDROID__ -DPLATFORM_ANDROID -D__ANDROID_API__=$(ANDROID_API_VERSION)
+CFLAGS += -D__ANDROID__ -DPLATFORM_ANDROID
+CFLAGS += "-DAPP_DISPLAY_NAME=\"$(APP_LABEL_NAME)\""
+CFLAGS += -DAPP_ORIENTATION=$(APP_ORIENTATION)
 
 # Paths containing required header files
 INCLUDE_PATHS = -I. -I$(RAYLIB_PATH)/src
@@ -170,9 +176,7 @@ create_temp_project_dirs:
 	if not exist $(PROJECT_BUILD_PATH) mkdir $(PROJECT_BUILD_PATH) 
 	if not exist $(PROJECT_BUILD_PATH)\obj mkdir $(PROJECT_BUILD_PATH)\obj
 	if not exist $(PROJECT_BUILD_PATH)\src mkdir $(PROJECT_BUILD_PATH)\src
-	if not exist $(PROJECT_BUILD_PATH)\src\com mkdir $(PROJECT_BUILD_PATH)\src\com
-	if not exist $(PROJECT_BUILD_PATH)\src\com\$(APP_COMPANY_NAME) mkdir $(PROJECT_BUILD_PATH)\src\com\$(APP_COMPANY_NAME)
-	if not exist $(PROJECT_BUILD_PATH)\src\com\$(APP_COMPANY_NAME)\$(APP_PRODUCT_NAME) mkdir $(PROJECT_BUILD_PATH)\src\com\$(APP_COMPANY_NAME)\$(APP_PRODUCT_NAME)
+	if not exist $(PROJECT_BUILD_PATH)\src\$(APP_PACKAGE_PATH) mkdir $(PROJECT_BUILD_PATH)\src\$(APP_PACKAGE_PATH)
 	if not exist $(PROJECT_BUILD_PATH)\lib mkdir $(PROJECT_BUILD_PATH)\lib
 	if not exist $(PROJECT_BUILD_PATH)\lib\$(ANDROID_ARCH_NAME) mkdir $(PROJECT_BUILD_PATH)\lib\$(ANDROID_ARCH_NAME)
 	if not exist $(PROJECT_BUILD_PATH)\bin mkdir $(PROJECT_BUILD_PATH)\bin
@@ -204,9 +208,9 @@ endif
 # NOTE: Required strings.xml is generated and game resources are copied to assets folder
 # TODO: Review xcopy usage, it can not be found in some systems!
 copy_project_resources:
-	copy $(APP_ICON_LDPI) $(PROJECT_BUILD_PATH)\res\drawable-ldpi\icon.png /Y
-	copy $(APP_ICON_MDPI) $(PROJECT_BUILD_PATH)\res\drawable-mdpi\icon.png /Y
-	copy $(APP_ICON_HDPI) $(PROJECT_BUILD_PATH)\res\drawable-hdpi\icon.png /Y
+	copy /Y "$(APP_ICON_LDPI)" $(PROJECT_BUILD_PATH)\res\drawable-ldpi\icon.png
+	copy /Y "$(APP_ICON_MDPI)" $(PROJECT_BUILD_PATH)\res\drawable-mdpi\icon.png
+	copy /Y "$(APP_ICON_HDPI)" $(PROJECT_BUILD_PATH)\res\drawable-hdpi\icon.png
 	@echo ^<?xml version="1.0" encoding="utf-8"^?^> > $(PROJECT_BUILD_PATH)/res/values/strings.xml
 	@echo ^<resources^>^<string name="app_name"^>$(APP_LABEL_NAME)^</string^>^</resources^> >> $(PROJECT_BUILD_PATH)/res/values/strings.xml
 	if exist $(PROJECT_RESOURCES_PATH) C:\Windows\System32\xcopy $(PROJECT_RESOURCES_PATH) $(PROJECT_BUILD_PATH)\assets\$(PROJECT_RESOURCES_PATH) /Y /E /F
@@ -214,28 +218,28 @@ copy_project_resources:
 # Generate NativeLoader.java to load required shared libraries
 # NOTE: Probably not the bet way to generate this file... but it works.
 generate_loader_script:
-	@echo package com.$(APP_COMPANY_NAME).$(APP_PRODUCT_NAME); > $(PROJECT_BUILD_PATH)/src/com/$(APP_COMPANY_NAME)/$(APP_PRODUCT_NAME)/NativeLoader.java
-	@echo. >> $(PROJECT_BUILD_PATH)/src/com/$(APP_COMPANY_NAME)/$(APP_PRODUCT_NAME)/NativeLoader.java
-	@echo public class NativeLoader extends android.app.NativeActivity { >> $(PROJECT_BUILD_PATH)/src/com/$(APP_COMPANY_NAME)/$(APP_PRODUCT_NAME)/NativeLoader.java
-	@echo     static { >> $(PROJECT_BUILD_PATH)/src/com/$(APP_COMPANY_NAME)/$(APP_PRODUCT_NAME)/NativeLoader.java
+	@echo package $(APP_PACKAGE_NAME); > $(PROJECT_BUILD_PATH)/src/$(APP_PACKAGE_PATH)/NativeLoader.java
+	@echo. >> $(PROJECT_BUILD_PATH)/src/$(APP_PACKAGE_PATH)/NativeLoader.java
+	@echo public class NativeLoader extends android.app.NativeActivity { >> $(PROJECT_BUILD_PATH)/src/$(APP_PACKAGE_PATH)/NativeLoader.java
+	@echo     static { >> $(PROJECT_BUILD_PATH)/src/$(APP_PACKAGE_PATH)/NativeLoader.java
 ifeq ($(RAYLIB_LIBTYPE),SHARED)
-	@echo         System.loadLibrary("raylib"); >> $(PROJECT_BUILD_PATH)/src/com/$(APP_COMPANY_NAME)/$(APP_PRODUCT_NAME)/NativeLoader.java
+	@echo         System.loadLibrary("raylib"); >> $(PROJECT_BUILD_PATH)/src/$(APP_PACKAGE_PATH)/NativeLoader.java
 endif
-	@echo         System.loadLibrary("$(PROJECT_LIBRARY_NAME)"); >> $(PROJECT_BUILD_PATH)/src/com/$(APP_COMPANY_NAME)/$(APP_PRODUCT_NAME)/NativeLoader.java 
-	@echo     } >> $(PROJECT_BUILD_PATH)/src/com/$(APP_COMPANY_NAME)/$(APP_PRODUCT_NAME)/NativeLoader.java
-	@echo } >> $(PROJECT_BUILD_PATH)/src/com/$(APP_COMPANY_NAME)/$(APP_PRODUCT_NAME)/NativeLoader.java
+	@echo         System.loadLibrary("$(PROJECT_LIBRARY_NAME)"); >> $(PROJECT_BUILD_PATH)/src/$(APP_PACKAGE_PATH)/NativeLoader.java 
+	@echo     } >> $(PROJECT_BUILD_PATH)/src/$(APP_PACKAGE_PATH)/NativeLoader.java
+	@echo } >> $(PROJECT_BUILD_PATH)/src/$(APP_PACKAGE_PATH)/NativeLoader.java
     
 # Generate AndroidManifest.xml with all the required options
 # NOTE: Probably not the bet way to generate this file... but it works.
 generate_android_manifest:
 	@echo ^<?xml version="1.0" encoding="utf-8"^?^> > $(PROJECT_BUILD_PATH)/AndroidManifest.xml
 	@echo ^<manifest xmlns:android="http://schemas.android.com/apk/res/android" >> $(PROJECT_BUILD_PATH)/AndroidManifest.xml
-	@echo         package="com.$(APP_COMPANY_NAME).$(APP_PRODUCT_NAME)"  >> $(PROJECT_BUILD_PATH)/AndroidManifest.xml
+	@echo         package="$(APP_PACKAGE_NAME)"  >> $(PROJECT_BUILD_PATH)/AndroidManifest.xml
 	@echo         android:versionCode="$(APP_VERSION_CODE)" android:versionName="$(APP_VERSION_NAME)" ^> >> $(PROJECT_BUILD_PATH)/AndroidManifest.xml
 	@echo     ^<uses-sdk android:minSdkVersion="$(ANDROID_API_VERSION)" /^> >> $(PROJECT_BUILD_PATH)/AndroidManifest.xml
 	@echo     ^<uses-feature android:glEsVersion="0x00020000" android:required="true" /^> >> $(PROJECT_BUILD_PATH)/AndroidManifest.xml
 	@echo     ^<application android:allowBackup="false" android:label="@string/app_name" android:icon="@drawable/icon" ^> >> $(PROJECT_BUILD_PATH)/AndroidManifest.xml
-	@echo         ^<activity android:name="com.$(APP_COMPANY_NAME).$(APP_PRODUCT_NAME).NativeLoader" >> $(PROJECT_BUILD_PATH)/AndroidManifest.xml
+	@echo         ^<activity android:name="$(APP_PACKAGE_NAME).NativeLoader" >> $(PROJECT_BUILD_PATH)/AndroidManifest.xml
 	@echo             android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >> $(PROJECT_BUILD_PATH)/AndroidManifest.xml
 	@echo             android:configChanges="orientation|keyboard|keyboardHidden|screenSize" >> $(PROJECT_BUILD_PATH)/AndroidManifest.xml
 	@echo             android:screenOrientation="$(APP_SCREEN_ORIENTATION)" android:launchMode="singleTask" >> $(PROJECT_BUILD_PATH)/AndroidManifest.xml
@@ -253,10 +257,10 @@ generate_android_manifest:
 # Generate storekey for APK signing: $(PROJECT_NAME).keystore
 # NOTE: Configure here your Distinguished Names (-dname) if required!
 generate_apk_keystore: 
-	if not exist $(PROJECT_BUILD_PATH)/$(PROJECT_NAME).keystore $(JAVA_HOME)/bin/keytool -genkeypair -validity 10000 -dname "CN=$(APP_COMPANY_NAME),O=Android,C=ES" -keystore $(PROJECT_BUILD_PATH)/$(PROJECT_NAME).keystore -storepass $(APP_KEYSTORE_PASS) -keypass $(APP_KEYSTORE_PASS) -alias $(PROJECT_NAME)Key -keyalg RSA
+	if not exist $(PROJECT_BUILD_PATH)/$(PROJECT_NAME).keystore $(JAVA_HOME)/bin/keytool -genkeypair -validity 10000 -dname "CN=$(APP_PACKAGE_NAME),O=Android,C=ES" -keystore $(PROJECT_BUILD_PATH)/$(PROJECT_NAME).keystore -storepass $(APP_KEYSTORE_PASS) -keypass $(APP_KEYSTORE_PASS) -alias $(PROJECT_NAME)Key -keyalg RSA
 
 # Config project package and resource using AndroidManifest.xml and res/values/strings.xml
-# NOTE: Generates resources file: src/com/$(APP_COMPANY_NAME)/$(APP_PRODUCT_NAME)/R.java
+# NOTE: Generates resources file under the configured Java package path.
 config_project_package:
 	$(ANDROID_BUILD_TOOLS)/aapt package -f -m -S $(PROJECT_BUILD_PATH)/res -J $(PROJECT_BUILD_PATH)/src -M $(PROJECT_BUILD_PATH)/AndroidManifest.xml -I $(ANDROID_HOME)/platforms/android-$(ANDROID_API_VERSION)/android.jar
 
@@ -271,12 +275,12 @@ $(PROJECT_BUILD_PATH)/obj/%.o:%.c
     
 # Compile project .java code into .class (Java bytecode) 
 compile_project_class:
-	$(JAVA_HOME)/bin/javac -verbose --source 11 --target 11 -d $(PROJECT_BUILD_PATH)/obj --system $(JAVA_HOME) --class-path $(ANDROID_HOME)/platforms/android-$(ANDROID_API_VERSION)/android.jar;$(PROJECT_BUILD_PATH)/obj --source-path $(PROJECT_BUILD_PATH)/src $(PROJECT_BUILD_PATH)/src/com/$(APP_COMPANY_NAME)/$(APP_PRODUCT_NAME)/R.java $(PROJECT_BUILD_PATH)/src/com/$(APP_COMPANY_NAME)/$(APP_PRODUCT_NAME)/NativeLoader.java
+	$(JAVA_HOME)/bin/javac -verbose --source 11 --target 11 -d $(PROJECT_BUILD_PATH)/obj --system $(JAVA_HOME) --class-path $(ANDROID_HOME)/platforms/android-$(ANDROID_API_VERSION)/android.jar;$(PROJECT_BUILD_PATH)/obj --source-path $(PROJECT_BUILD_PATH)/src $(PROJECT_BUILD_PATH)/src/$(APP_PACKAGE_PATH)/R.java $(PROJECT_BUILD_PATH)/src/$(APP_PACKAGE_PATH)/NativeLoader.java
 
 # Compile .class files into Dalvik executable bytecode (.dex)
 # NOTE: Since Android 5.0, Dalvik interpreter (JIT) has been replaced by ART (AOT)
 compile_project_class_dex:
-	$(ANDROID_BUILD_TOOLS)/d8 $(PROJECT_BUILD_PATH)/obj/com/$(APP_COMPANY_NAME)/$(APP_PRODUCT_NAME)/*.class --release --output $(PROJECT_BUILD_PATH)/bin --lib $(ANDROID_HOME)/platforms/android-$(ANDROID_API_VERSION)/android.jar
+	$(ANDROID_BUILD_TOOLS)/d8 $(PROJECT_BUILD_PATH)/obj/$(APP_PACKAGE_PATH)/*.class --release --output $(PROJECT_BUILD_PATH)/bin --lib $(ANDROID_HOME)/platforms/android-$(ANDROID_API_VERSION)/android.jar
 
 # Create Android APK package: bin/$(PROJECT_NAME).unaligned.apk
 # NOTE: Requires compiled classes.dex and lib$(PROJECT_LIBRARY_NAME).so
@@ -291,12 +295,15 @@ zipalign_project_apk_package:
 
 # Create signed APK package using generated Key: $(PROJECT_NAME).apk 
 sign_project_apk_package:
-	$(ANDROID_BUILD_TOOLS)/apksigner sign --ks $(PROJECT_BUILD_PATH)/$(PROJECT_NAME).keystore --ks-pass pass:$(APP_KEYSTORE_PASS) --key-pass pass:$(APP_KEYSTORE_PASS) --out $(PROJECT_NAME).apk --ks-key-alias $(PROJECT_NAME)Key $(PROJECT_BUILD_PATH)/bin/$(PROJECT_NAME).aligned.apk
+	if not exist "$(APK_OUTPUT_DIR)" mkdir "$(APK_OUTPUT_DIR)"
+	if exist "$(APK_OUTPUT_PATH)" del /q "$(APK_OUTPUT_PATH)"
+	if exist "$(APK_OUTPUT_PATH).idsig" del /q "$(APK_OUTPUT_PATH).idsig"
+	$(ANDROID_BUILD_TOOLS)/apksigner sign --ks $(PROJECT_BUILD_PATH)/$(PROJECT_NAME).keystore --ks-pass pass:$(APP_KEYSTORE_PASS) --key-pass pass:$(APP_KEYSTORE_PASS) --out "$(APK_OUTPUT_PATH)" --ks-key-alias $(PROJECT_NAME)Key $(PROJECT_BUILD_PATH)/bin/$(PROJECT_NAME).aligned.apk
 
 # Install $(PROJECT_NAME).apk to default emulator/device
 # NOTE: Use -e (emulator) or -d (device) parameters if required
 install:
-	$(ANDROID_PLATFORM_TOOLS)/adb install $(PROJECT_NAME).apk
+	$(ANDROID_PLATFORM_TOOLS)/adb install "$(APK_OUTPUT_PATH)"
     
 # Check supported ABI for the device (armeabi-v7a, arm64-v8a, x86, x86_64)
 check_device_abi:
@@ -309,7 +316,7 @@ logcat:
     
 # Install and monitorize $(PROJECT_NAME).apk to default emulator/device
 deploy:
-	$(ANDROID_PLATFORM_TOOLS)/adb install $(PROJECT_NAME).apk
+	$(ANDROID_PLATFORM_TOOLS)/adb install "$(APK_OUTPUT_PATH)"
 	$(ANDROID_PLATFORM_TOOLS)/adb logcat -c
 	$(ANDROID_PLATFORM_TOOLS)/adb logcat raylib:V *:S
 
@@ -317,6 +324,6 @@ deploy:
 
 # Clean everything
 clean:
-	del $(PROJECT_BUILD_PATH)\* /f /s /q
-	rmdir $(PROJECT_BUILD_PATH) /s /q
+	if exist $(PROJECT_BUILD_PATH) del $(PROJECT_BUILD_PATH)\* /f /s /q
+	if exist $(PROJECT_BUILD_PATH) rmdir $(PROJECT_BUILD_PATH) /s /q
 	@echo Cleaning done

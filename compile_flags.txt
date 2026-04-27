@@ -1,0 +1,7 @@
+-std=c11
+-Ibuild/debug/vcpkg_installed/x64-windows/include
+-Ibuild/debug/vcpkg_installed/x64-linux/include
+-Ibuild/debug/vcpkg_installed/x64-osx/include
+-Ibuild/debug/vcpkg_installed/arm64-osx/include
+-Ibuild/vs/vcpkg_installed/x64-windows/include
+-DAPP_DISPLAY_NAME="Mobile Game Template"
