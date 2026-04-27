@@ -82,6 +82,7 @@ void RendererDraw(Renderer *renderer, const Game *game) {
     const int panel_width = renderer->virtual_width - margin * 2;
 
     ClearBackground((Color){ 30, 34, 42, 255 });
+    RendererDrawGrid(renderer, 64, (Color){ 54, 60, 72, 255 });
 
     DrawRectangle(margin, 48, panel_width, 260, (Color){ 245, 247, 250, 255 });
     DrawRectangleLines(margin, 48, panel_width, 260, (Color){ 80, 90, 110, 255 });
@@ -106,6 +107,20 @@ void RendererDraw(Renderer *renderer, const Game *game) {
     }
 
     RendererEndDraw(renderer);
+}
+
+void RendererDrawGrid(const Renderer *renderer, int cell_size, Color color) {
+    if (renderer == NULL || cell_size <= 0) {
+        return;
+    }
+
+    for (int x = 0; x <= renderer->virtual_width; x += cell_size) {
+        DrawLine(x, 0, x, renderer->virtual_height, color);
+    }
+
+    for (int y = 0; y <= renderer->virtual_height; y += cell_size) {
+        DrawLine(0, y, renderer->virtual_width, y, color);
+    }
 }
 
 Vector2 RendererWindowToVirtual(const Renderer *renderer, Vector2 point) {

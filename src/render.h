@@ -23,6 +23,7 @@ bool RendererInit(Renderer *renderer, int virtual_width, int virtual_height);
 void RendererShutdown(Renderer *renderer);
 void RendererResize(Renderer *renderer, int output_width, int output_height);
 void RendererDraw(Renderer *renderer, const Game *game);
+void RendererDrawGrid(const Renderer *renderer, int cell_size, Color color);
 Vector2 RendererWindowToVirtual(const Renderer *renderer, Vector2 point);
 
 #endif
