@@ -3,14 +3,15 @@
 
 #include <stdbool.h>
 
+#include "flecs.h"
 #include "input.h"
+#include "player.h"
 #include "raylib.h"
 
 typedef struct Game {
+    ecs_world_t *ecs;
     float elapsed_time;
-
-    Vector2 debug_touch_position;
-    bool debug_touch_active;
+    Player player;
 } Game;
 
 bool GameInit(Game *game);

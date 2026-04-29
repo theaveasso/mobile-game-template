@@ -8,12 +8,23 @@ bool GameInit(Game *game) {
     }
 
     *game = (Game){ 0 };
+    game->ecs = ecs_init();
+    if (game->ecs == NULL) {
+        *game = (Game){ 0 };
+        return false;
+    }
+
+    PlayerInit(&game->player);
     return true;
 }
 
 void GameShutdown(Game *game) {
     if (game == NULL) {
         return;
+    }
+
+    if (game->ecs != NULL) {
+        ecs_fini(game->ecs);
     }
 
     *game = (Game){ 0 };
@@ -25,9 +36,5 @@ void GameUpdate(Game *game, const Input *input, float dt) {
     }
 
     game->elapsed_time += dt;
-
-    game->debug_touch_active = input != NULL && input->pointer_down && input->pointer_inside;
-    if (game->debug_touch_active) {
-        game->debug_touch_position = (Vector2){ input->pointer_x, input->pointer_y };
-    }
+    PlayerUpdate(&game->player, input, dt);
 }

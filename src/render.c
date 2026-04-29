@@ -97,14 +97,15 @@ void RendererDraw(Renderer *renderer, const Game *game) {
     DrawTextEx(GetFontDefault(), "Resize the window: the game canvas stays stable",
                (Vector2){ 56, 270 }, 24, 2, DARKBLUE);
 
-    if (game->debug_touch_active) {
-        DrawCircleV(game->debug_touch_position, 24.0f, ORANGE);
-        DrawCircleLines((int)game->debug_touch_position.x, (int)game->debug_touch_position.y, 24.0f, BLACK);
-        DrawText(TextFormat("touch %.0f, %.0f", game->debug_touch_position.x, game->debug_touch_position.y),
-                 56, 318, 24, ORANGE);
-    } else {
-        DrawText("touch: none", 56, 318, 24, GRAY);
-    }
+    const Rectangle player_rect = {
+        game->player.position.x - game->player.size.x * 0.5f,
+        game->player.position.y - game->player.size.y * 0.5f,
+        game->player.size.x,
+        game->player.size.y,
+    };
+    DrawRectangleRounded(player_rect, 0.2f, 8, (Color){ 255, 168, 0, 255 });
+    DrawRectangleRoundedLinesEx(player_rect, 0.2f, 8, 2.0f, BLACK);
+    DrawText("touch + hold to move player", 56, 318, 24, GRAY);
 
     RendererEndDraw(renderer);
 }

@@ -34,13 +34,18 @@ set(GAME_SOURCES
     src/app.c
     src/game.c
     src/input.c
+    src/player.c
     src/render.c
 )
 
 add_executable(${PROJECT_NAME} ${GAME_SOURCES})
 
 find_package(raylib CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE raylib)
+find_package(flecs CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    raylib
+    $<IF:$<TARGET_EXISTS:flecs::flecs>,flecs::flecs,flecs::flecs_static>
+)
 target_include_directories(${PROJECT_NAME} PRIVATE src)
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     APP_DISPLAY_NAME="${TEMPLATE_DISPLAY_NAME}"
